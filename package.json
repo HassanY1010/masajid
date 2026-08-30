@@ -1,0 +1,24 @@
+{
+  "name": "masajid-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "منصة مساجد لخدمة بيوت الله - Production Full-Stack Platform",
+  "scripts": {
+    "dev:api": "pnpm --filter @masajid/api start:dev",
+    "dev:admin": "pnpm --filter @masajid/admin dev",
+    "dev": "pnpm --filter @masajid/api start:dev",
+    "build": "pnpm -r --filter=!masajid-mobile build",
+    "lint": "pnpm -r --filter=!masajid-mobile lint",
+    "test": "pnpm -r --filter=!masajid-mobile test",
+    "db:generate": "pnpm --filter @masajid/api prisma:generate",
+    "db:migrate": "pnpm --filter @masajid/api prisma:migrate",
+    "db:seed": "pnpm --filter @masajid/api prisma:seed"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "pg-mem": "^3.0.14"
+  }
+}

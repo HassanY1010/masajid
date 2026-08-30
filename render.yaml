@@ -1,0 +1,56 @@
+services:
+  # 1. NestJS Backend API Service
+  - type: web
+    name: masajid-api
+    env: node
+    plan: free
+    region: frankfurt # or singapore / oregon
+    buildCommand: pnpm install && pnpm --filter @masajid/shared-types build && pnpm --filter @masajid/shared-validation build && pnpm --filter @masajid/api prisma:generate && pnpm --filter @masajid/api prisma:push && pnpm --filter @masajid/api build
+    startCommand: node apps/api/dist/main.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: API_PREFIX
+        value: api
+      - key: DATABASE_URL
+        value: postgresql://postgres.lbjegtcnxaihqaaywawc:hhaall112233qaz@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?schema=public&pgbouncer=true
+      - key: SUPABASE_URL
+        value: https://lbjegtcnxaihqaaywawc.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxiamVndGNueGFpaHFhYXl3YXdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMTQ0NzUsImV4cCI6MjEwMzY5MDQ3NX0.azDQwPHz7guqGmyURX9zlBbzIttOY8dtk2da0RInWaU
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxiamVndGNueGFpaHFhYXl3YXdjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODExNDQ3NSwiZXhwIjoyMTAzNjkwNDc1fQ.MUC2dJOsiPd741KpNDYeD8AYA_YBK3WlByrDD_a3d7s
+      - key: SUPABASE_BUCKET
+        value: masajid-uploads
+      - key: STORAGE_DRIVER
+        value: supabase
+      - key: JWT_SECRET
+        value: masajid_super_secret_jwt_key_production_32chars_min
+      - key: JWT_EXPIRATION
+        value: 1d
+      - key: JWT_REFRESH_SECRET
+        value: masajid_super_secret_refresh_key_production
+      - key: JWT_REFRESH_EXPIRATION
+        value: 7d
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: ADMIN_EMAIL
+        value: admin@masajid.app
+      - key: ADMIN_PASSWORD
+        value: AdminPassword123!
+
+  # 2. React Admin Dashboard (Static Site)
+  - type: web
+    name: masajid-admin
+    env: static
+    buildCommand: pnpm install && pnpm --filter @masajid/shared-types build && pnpm --filter @masajid/shared-validation build && pnpm --filter @masajid/admin build
+    staticPublishPath: apps/admin/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://masajid-api.onrender.com/api

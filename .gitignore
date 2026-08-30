@@ -1,0 +1,74 @@
+# Node & Package Managers
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-lock.yaml.bak
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env.*
+!*.env.example
+
+# Local Database Files
+pgdata/
+*.log
+
+# Build & Compiled Output
+dist/
+build/
+out/
+.next/
+*.tsbuildinfo
+
+# Uploads & Temporary Media (Keep structure, ignore local content)
+uploads/*
+!uploads/.gitkeep
+uploads/media/*
+!uploads/media/.gitkeep
+uploads/receipts/*
+!uploads/receipts/.gitkeep
+uploads/projects/*
+!uploads/projects/.gitkeep
+
+# IDEs & System Files
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# Flutter & Dart specific
+apps/mobile/.dart_tool/
+apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/.packages
+apps/mobile/.pub-cache/
+apps/mobile/.pub/
+apps/mobile/build/
+apps/mobile/android/app/debug/
+apps/mobile/android/app/profile/
+apps/mobile/android/app/release/
+apps/mobile/ios/Flutter/Generated.xcconfig
+apps/mobile/ios/Flutter/flutter_export_environment.sh
+apps/mobile/ios/ServiceDefinitions.json
+apps/mobile/ios/Runner/GeneratedPluginRegistrant.*
+apps/mobile/macos/Flutter/ephemeral/
+apps/mobile/windows/flutter/ephemeral/
+apps/mobile/linux/flutter/ephemeral/
+
+# Scratch & Temporary Testing Files
+scratch/
+apps/api/src/live-real-verification.*
