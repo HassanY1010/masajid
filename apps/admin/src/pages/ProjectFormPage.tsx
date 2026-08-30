@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '../lib/api';
@@ -8,15 +8,21 @@ import {
   MapPin,
   FileText,
   DollarSign,
-  Image as ImageIcon,
+  Upload,
   Save,
   Loader2,
   AlertCircle,
+  X,
+  CheckCircle2,
 } from 'lucide-react';
 
 export const ProjectFormPage: React.FC = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [coverStorageKey, setCoverStorageKey] = useState<string>('');
+  const [selectedFileName, setSelectedFileName] = useState<string>('');
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -53,6 +59,53 @@ export const ProjectFormPage: React.FC = () => {
   const totalSharesValue = formData.totalShares * formData.shareValue;
   const isMathValid = Math.abs(totalSharesValue - formData.estimatedCost) < 0.01;
 
+  // Handle direct file upload from device memory/gallery
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (max 8MB)
+    if (file.size > 8 * 1024 * 1024) {
+      setError('حجم الصورة كبير جداً، الحد الأقصى المسموح به هو 8 ميجابايت');
+      return;
+    }
+
+    setUploadingImage(true);
+    setError(null);
+    setSelectedFileName(file.name);
+
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+
+      // Post directly to backend upload endpoint (which forwards to Supabase Storage)
+      const res: any = await api.post('/admin/uploads/image', uploadFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (res && res.url) {
+        setFormData((prev) => ({ ...prev, coverUrl: res.url }));
+        setCoverStorageKey(res.storageKey || 'media/cover.jpg');
+      }
+    } catch (err: any) {
+      setError(err.message || 'فشل رفع الصورة إلى التخزين السحابي. يرجى المحاولة مرة أخرى.');
+      setSelectedFileName('');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const removeSelectedImage = () => {
+    setFormData((prev) => ({ ...prev, coverUrl: '' }));
+    setCoverStorageKey('');
+    setSelectedFileName('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const mutation = useMutation({
     mutationFn: (payload: any) => api.post('/admin/projects', payload),
     onSuccess: () => {
@@ -68,7 +121,9 @@ export const ProjectFormPage: React.FC = () => {
     setError(null);
 
     if (!isMathValid) {
-      setError(`خطأ رياضي: عدد الأسهم (${formData.totalShares}) × قيمة السهم (${formData.shareValue}) = ${totalSharesValue} لا يتطابق مع التكلفة المقدرة (${formData.estimatedCost})`);
+      setError(
+        `خطأ رياضي: عدد الأسهم (${formData.totalShares}) × قيمة السهم (${formData.shareValue}) = ${totalSharesValue} لا يتطابق مع التكلفة المقدرة (${formData.estimatedCost})`,
+      );
       return;
     }
 
@@ -78,7 +133,7 @@ export const ProjectFormPage: React.FC = () => {
         ? [
             {
               url: formData.coverUrl,
-              storageKey: 'manual_cover',
+              storageKey: coverStorageKey || 'media/cover.jpg',
               type: 'COVER',
               sortOrder: 0,
             },
@@ -93,8 +148,8 @@ export const ProjectFormPage: React.FC = () => {
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-black text-white tracking-tight">إضافة مشروع مسجد جديد</h1>
-        <p className="text-sm text-slate-400 mt-1">
+        <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">إضافة مشروع مسجد جديد</h1>
+        <p className="text-xs sm:text-sm text-slate-400 mt-1">
           أدخل بيانات المسجد، الموقع الجغرافي، الاحتياج الفني، وهيكل الأسهم التمويلية
         </p>
       </div>
@@ -108,7 +163,7 @@ export const ProjectFormPage: React.FC = () => {
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Section 1: Mosque & General Info */}
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+        <div className="p-5 sm:p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-800 text-brand-400 font-bold text-base">
             <Building2 className="w-5 h-5" />
             <span>بيانات المسجد والمشروع</span>
@@ -165,7 +220,7 @@ export const ProjectFormPage: React.FC = () => {
         </div>
 
         {/* Section 2: Location */}
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+        <div className="p-5 sm:p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-800 text-brand-400 font-bold text-base">
             <MapPin className="w-5 h-5" />
             <span>الموقع الجغرافي للمسجد</span>
@@ -217,7 +272,7 @@ export const ProjectFormPage: React.FC = () => {
         </div>
 
         {/* Section 3: Financial Structure & Shares */}
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+        <div className="p-5 sm:p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-800 text-brand-400 font-bold text-base">
             <DollarSign className="w-5 h-5" />
             <span>الهيكل المالي ونظام الأسهم</span>
@@ -272,30 +327,32 @@ export const ProjectFormPage: React.FC = () => {
           </div>
 
           {/* Mathematical Invariant Verification Box */}
-          <div className={`p-4 rounded-xl border flex items-center justify-between text-xs ${
-            isMathValid
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-              : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-          }`}>
+          <div
+            className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs ${
+              isMathValid
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+            }`}
+          >
             <div>
               <p className="font-bold">
                 المعادلة: {formData.totalShares} سهم × {formData.shareValue} SAR = {totalSharesValue.toLocaleString()} SAR
               </p>
               <p className="text-[11px] opacity-80 mt-0.5">
-                {isMathValid ? 'الحسابات متطابقة تماماً مع التكلفة المقدرة' : 'تحذير: حاصل ضرب الأسهم لا يساوي التكلفة المقدرة!'}
+                {isMathValid
+                  ? 'الحسابات متطابقة تماماً مع التكلفة المقدرة'
+                  : 'تحذير: حاصل ضرب الأسهم لا يساوي التكلفة المقدرة!'}
               </p>
             </div>
-            <span className="font-black text-sm">
-              {isMathValid ? '✓ سليم' : '✗ غير متطابق'}
-            </span>
+            <span className="font-black text-sm">{isMathValid ? '✓ سليم' : '✗ غير متطابق'}</span>
           </div>
         </div>
 
-        {/* Section 4: Descriptions & Image */}
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+        {/* Section 4: Descriptions & Image Upload from Device */}
+        <div className="p-5 sm:p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-800 text-brand-400 font-bold text-base">
             <FileText className="w-5 h-5" />
-            <span>تفاصيل الاحتياج والصور</span>
+            <span>تفاصيل الاحتياج وصورة المسجد</span>
           </div>
 
           <div>
@@ -326,33 +383,88 @@ export const ProjectFormPage: React.FC = () => {
             ></textarea>
           </div>
 
+          {/* Device Image File Picker (Direct Upload to Supabase Storage) */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-2">
-              رابط صورة غلاف المسجد (Cover Image URL)
+              صورة غلاف المسجد (رفع من ذاكرة الجهاز أو المعرض)
             </label>
+
+            {/* Hidden native file input */}
             <input
-              type="url"
-              placeholder="https://images.unsplash.com/..."
-              value={formData.coverUrl}
-              onChange={(e) => setFormData({ ...formData, coverUrl: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-brand-500 focus:outline-none"
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
             />
+
+            {formData.coverUrl ? (
+              <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-slate-950 max-w-md">
+                <img
+                  src={formData.coverUrl}
+                  alt="معاينة غلاف المسجد"
+                  className="w-full h-48 object-cover rounded-2xl"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-between p-4">
+                  <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold bg-black/60 px-2.5 py-1 rounded-lg">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>تم الرفع والتخزين بنجاح</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeSelectedImage}
+                    className="p-1.5 bg-rose-500/80 hover:bg-rose-500 text-white rounded-lg transition-colors"
+                    title="حذف الصورة"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => !uploadingImage && fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                  uploadingImage
+                    ? 'border-brand-500/50 bg-brand-500/5'
+                    : 'border-slate-800 hover:border-brand-500/50 bg-slate-950/60 hover:bg-slate-950'
+                }`}
+              >
+                {uploadingImage ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="w-8 h-8 text-brand-400 animate-spin" />
+                    <p className="text-xs text-brand-400 font-bold">جاري رفع الصورة إلى التخزين السحابي...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="w-14 h-14 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-brand-400 mb-3">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    <p className="text-sm font-bold text-white text-center">
+                      اضغط لاختيار صورة من جهازك / المعرض
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1 text-center">
+                      يدعم JPG, PNG, WEBP (الحد الأقصى 8MB)
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Submit */}
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
           <button
             type="button"
             onClick={() => navigate('/projects')}
-            className="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-colors"
+            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-colors"
           >
             إلغاء
           </button>
           <button
             type="submit"
-            disabled={mutation.isPending || !isMathValid}
-            className="px-8 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold shadow-lg shadow-brand-600/30 flex items-center gap-2 transition-all disabled:opacity-50"
+            disabled={mutation.isPending || !isMathValid || uploadingImage}
+            className="w-full sm:w-auto px-8 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold shadow-lg shadow-brand-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
           >
             {mutation.isPending ? (
               <>
@@ -362,7 +474,7 @@ export const ProjectFormPage: React.FC = () => {
             ) : (
               <>
                 <Save className="w-5 h-5" />
-                <span>حفظ المشروع كمسودة</span>
+                <span>حفظ المشروع ونشره</span>
               </>
             )}
           </button>
