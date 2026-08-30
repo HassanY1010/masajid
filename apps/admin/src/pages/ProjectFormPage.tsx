@@ -127,12 +127,15 @@ export const ProjectFormPage: React.FC = () => {
       return;
     }
 
+    // Destructure coverUrl out so it doesn't get sent in DTO
+    const { coverUrl, ...projectFields } = formData;
+
     const payload = {
-      ...formData,
-      images: formData.coverUrl
+      ...projectFields,
+      images: coverUrl
         ? [
             {
-              url: formData.coverUrl,
+              url: coverUrl,
               storageKey: coverStorageKey || 'media/cover.jpg',
               type: 'COVER',
               sortOrder: 0,
