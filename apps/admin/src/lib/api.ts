@@ -1,7 +1,10 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: (import.meta as any).env?.VITE_API_URL || '/api',
+  baseURL:
+    (import.meta as any).env?.VITE_API_BASE_URL ||
+    (import.meta as any).env?.VITE_API_URL ||
+    'https://masajid-1ggr.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },

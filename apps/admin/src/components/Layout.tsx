@@ -110,7 +110,7 @@ export const Layout: React.FC = () => {
 
           <div className="flex items-center gap-4">
             <a
-              href="http://localhost:4000/docs/swagger"
+              href="https://masajid-1ggr.onrender.com/docs/swagger"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-brand-400 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/50 transition-colors"
