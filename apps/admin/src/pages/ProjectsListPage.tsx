@@ -167,8 +167,110 @@ export const ProjectsListPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Projects Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      {/* Projects Display: Cards on Mobile, Table on Desktop */}
+      <div className="block md:hidden space-y-4">
+        {isLoading ? (
+          <div className="p-8 text-center text-slate-400 bg-slate-900 rounded-2xl animate-pulse">
+            جاري تحميل المشاريع...
+          </div>
+        ) : data?.items && data.items.length > 0 ? (
+          data.items.map((project: any) => {
+            const cover = project.images?.find((img: any) => img.type === 'COVER') || project.images?.[0];
+            return (
+              <div key={project.id} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-xl bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-700">
+                    {cover ? (
+                      <img src={cover.url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-500 font-bold text-xl">
+                        🕌
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-white text-base truncate">{project.title}</p>
+                    <p className="text-xs text-brand-400 font-medium">{project.mosqueName}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{project.governorate} - {project.district}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs">
+                  <div>
+                    <span className="text-slate-500">الفئة: </span>
+                    <span className="text-slate-300 font-semibold">{getCategoryLabel(project.category)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">الحالة: </span>
+                    {getStatusBadge(project.status, project.isPublished)}
+                  </div>
+                  <div className="col-span-2 pt-2 border-t border-slate-800 flex justify-between">
+                    <span>التكلفة: <strong className="text-white">{project.estimatedCost.toLocaleString()} {project.currency}</strong></span>
+                    <span>الأسهم: <strong className="text-brand-400">{project.totalShares} سهم</strong></span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">نسبة التمويل ({project.fundingPercentage}%)</span>
+                    <span className="text-brand-400 font-bold">{project.fundedShares} سهم مكتتب</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                    <div
+                      className="h-full bg-brand-500 rounded-full"
+                      style={{ width: `${project.fundingPercentage}%` }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+                  <button
+                    onClick={() =>
+                      publishMutation.mutate({
+                        id: project.id,
+                        isPublished: !project.isPublished,
+                      })
+                    }
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${
+                      project.isPublished
+                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                        : 'bg-brand-500/10 text-brand-400 border-brand-500/20'
+                    }`}
+                  >
+                    {project.isPublished ? 'إلغاء النشر' : 'نشر المشروع'}
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to={`/projects/${project.id}/edit`}
+                      className="p-2 rounded-lg text-slate-300 bg-slate-800 hover:text-white"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Link>
+                    <button
+                      onClick={() => {
+                        if (confirm('هل أنت متأكد من حذف هذا المشروع؟')) {
+                          deleteMutation.mutate(project.id);
+                        }
+                      }}
+                      className="p-2 rounded-lg text-rose-400 bg-rose-500/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="p-8 text-center text-slate-500 bg-slate-900 rounded-2xl">
+            لا توجد مشاريع مسجلة
+          </div>
+        )}
+      </div>
+
+      {/* Projects Desktop Table */}
+      <div className="hidden md:block bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-right border-collapse">
             <thead>

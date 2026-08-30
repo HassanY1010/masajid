@@ -32,7 +32,45 @@ export const AuditLogsPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      {/* Mobile Card View */}
+      <div className="block md:hidden space-y-4">
+        {isLoading ? (
+          <div className="p-8 text-center text-slate-400 bg-slate-900 rounded-2xl animate-pulse">
+            جاري تحميل سجل العمليات...
+          </div>
+        ) : data?.items && data.items.length > 0 ? (
+          data.items.map((log: any) => {
+            const act = getActionLabel(log.action);
+            return (
+              <div key={log.id} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${act.color}`}>
+                    {act.label}
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    {new Date(log.createdAt).toLocaleTimeString('ar-SA')}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-300">
+                  <User className="w-4 h-4 text-slate-500" />
+                  <span>المشرف: <strong>{log.admin?.name || 'مدير النظام'}</strong></span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs font-mono text-slate-400 space-y-1">
+                  <p>العنصر: {log.entity} {log.entityId ? `#${log.entityId.slice(0, 8)}` : ''}</p>
+                  <p className="truncate text-slate-500">{JSON.stringify(log.metadata)}</p>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="p-8 text-center text-slate-500 bg-slate-900 rounded-2xl">
+            لا توجد عمليات مسجلة
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-right border-collapse">
             <thead>
