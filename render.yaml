@@ -6,7 +6,7 @@ services:
     plan: free
     region: frankfurt # or singapore / oregon
     buildCommand: pnpm install && pnpm --filter @masajid/shared-types build && pnpm --filter @masajid/shared-validation build && pnpm --filter @masajid/api prisma:generate && pnpm --filter @masajid/api prisma:push && pnpm --filter @masajid/api build
-    startCommand: node apps/api/dist/main.js
+    startCommand: node apps/api/dist/src/main.js
     envVars:
       - key: NODE_ENV
         value: production
