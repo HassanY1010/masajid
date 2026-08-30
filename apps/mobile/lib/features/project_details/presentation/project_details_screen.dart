@@ -249,6 +249,70 @@ class ProjectDetailsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 24),
 
+                      // Image Gallery Section
+                      if (project.images.length > 1) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'معرض صور المسجد والاحتياج',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                            ),
+                            Text(
+                              '${project.images.length} صور',
+                              style: const TextStyle(fontSize: 12, color: AppTheme.primaryLight, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 120,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: project.images.length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 12),
+                            itemBuilder: (context, index) {
+                              final img = project.images[index];
+                              return GestureDetector(
+                                onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) => Dialog(
+                                      backgroundColor: Colors.transparent,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: Image.network(img.url, fit: BoxFit.contain),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    width: 150,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: img.type == 'COVER' ? AppTheme.goldLight : AppTheme.borderDark,
+                                        width: img.type == 'COVER' ? 2 : 1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Image.network(
+                                      img.url,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Center(
+                                        child: Icon(Icons.broken_image, color: Colors.grey),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
                       // Updates / Completion Progress (if any)
                       if (project.updates.isNotEmpty) ...[
                         const Text(

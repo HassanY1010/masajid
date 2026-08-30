@@ -14,15 +14,23 @@ import {
   AlertCircle,
   X,
   CheckCircle2,
+  Images,
+  Star,
 } from 'lucide-react';
+
+interface UploadedImageItem {
+  url: string;
+  storageKey: string;
+  isCover: boolean;
+  name?: string;
+}
 
 export const ProjectFormPage: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [coverStorageKey, setCoverStorageKey] = useState<string>('');
-  const [selectedFileName, setSelectedFileName] = useState<string>('');
+  const [uploadedImages, setUploadedImages] = useState<UploadedImageItem[]>([]);
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -38,7 +46,6 @@ export const ProjectFormPage: React.FC = () => {
     currency: string;
     totalShares: number;
     shareValue: number;
-    coverUrl: string;
   }>({
     title: '',
     mosqueName: '',
@@ -52,58 +59,84 @@ export const ProjectFormPage: React.FC = () => {
     currency: 'SAR',
     totalShares: 2000,
     shareValue: 10,
-    coverUrl: '',
   });
 
   // Calculate live invariant
   const totalSharesValue = formData.totalShares * formData.shareValue;
   const isMathValid = Math.abs(totalSharesValue - formData.estimatedCost) < 0.01;
 
-  // Handle direct file upload from device memory/gallery
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Handle multi-image file upload from device memory / gallery
+  const handleFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    // Validate size (max 8MB)
-    if (file.size > 8 * 1024 * 1024) {
-      setError('حجم الصورة كبير جداً، الحد الأقصى المسموح به هو 8 ميجابايت');
+    // Check max 10 images limit
+    if (uploadedImages.length + files.length > 10) {
+      setError('الحد الأقصى المسموح به هو 10 صور للمشروع الواحد');
       return;
     }
 
     setUploadingImage(true);
     setError(null);
-    setSelectedFileName(file.name);
 
     try {
       const uploadFormData = new FormData();
-      uploadFormData.append('file', file);
+      for (let i = 0; i < files.length; i++) {
+        uploadFormData.append('files', files[i]);
+      }
 
-      // Post directly to backend upload endpoint (which forwards to Supabase Storage)
-      const res: any = await api.post('/admin/uploads/image', uploadFormData, {
+      // Call backend multiple images endpoint
+      const res: any = await api.post('/admin/uploads/images', uploadFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      if (res && res.url) {
-        setFormData((prev) => ({ ...prev, coverUrl: res.url }));
-        setCoverStorageKey(res.storageKey || 'media/cover.jpg');
+      if (Array.isArray(res)) {
+        const newUploadedItems: UploadedImageItem[] = res.map((item: any, idx: number) => ({
+          url: item.url,
+          storageKey: item.storageKey || 'media/image.jpg',
+          isCover: uploadedImages.length === 0 && idx === 0, // first image becomes default cover
+          name: item.originalName,
+        }));
+
+        setUploadedImages((prev) => {
+          const updated = [...prev, ...newUploadedItems];
+          // Ensure at least one image is marked as cover
+          if (!updated.some((img) => img.isCover) && updated.length > 0) {
+            updated[0].isCover = true;
+          }
+          return updated;
+        });
       }
     } catch (err: any) {
-      setError(err.message || 'فشل رفع الصورة إلى التخزين السحابي. يرجى المحاولة مرة أخرى.');
-      setSelectedFileName('');
+      setError(err.message || 'فشل رفع الصور إلى التخزين السحابي. يرجى المحاولة مرة أخرى.');
     } finally {
       setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
-  const removeSelectedImage = () => {
-    setFormData((prev) => ({ ...prev, coverUrl: '' }));
-    setCoverStorageKey('');
-    setSelectedFileName('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  const removeImage = (indexToRemove: number) => {
+    setUploadedImages((prev) => {
+      const wasCover = prev[indexToRemove].isCover;
+      const updated = prev.filter((_, idx) => idx !== indexToRemove);
+      if (wasCover && updated.length > 0) {
+        updated[0].isCover = true; // set new first image as cover
+      }
+      return updated;
+    });
+  };
+
+  const setAsCover = (indexToCover: number) => {
+    setUploadedImages((prev) =>
+      prev.map((img, idx) => ({
+        ...img,
+        isCover: idx === indexToCover,
+      })),
+    );
   };
 
   const mutation = useMutation({
@@ -127,21 +160,14 @@ export const ProjectFormPage: React.FC = () => {
       return;
     }
 
-    // Destructure coverUrl out so it doesn't get sent in DTO
-    const { coverUrl, ...projectFields } = formData;
-
     const payload = {
-      ...projectFields,
-      images: coverUrl
-        ? [
-            {
-              url: coverUrl,
-              storageKey: coverStorageKey || 'media/cover.jpg',
-              type: 'COVER',
-              sortOrder: 0,
-            },
-          ]
-        : [],
+      ...formData,
+      images: uploadedImages.map((img, index) => ({
+        url: img.url,
+        storageKey: img.storageKey,
+        type: img.isCover ? 'COVER' : 'GALLERY',
+        sortOrder: img.isCover ? 0 : index + 1,
+      })),
     };
 
     mutation.mutate(payload);
@@ -351,11 +377,11 @@ export const ProjectFormPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Section 4: Descriptions & Image Upload from Device */}
+        {/* Section 4: Descriptions & Multi-Image Gallery Upload */}
         <div className="p-5 sm:p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-800 text-brand-400 font-bold text-base">
             <FileText className="w-5 h-5" />
-            <span>تفاصيل الاحتياج وصورة المسجد</span>
+            <span>تفاصيل الاحتياج ومعرض صور المسجد</span>
           </div>
 
           <div>
@@ -386,44 +412,75 @@ export const ProjectFormPage: React.FC = () => {
             ></textarea>
           </div>
 
-          {/* Device Image File Picker (Direct Upload to Supabase Storage) */}
+          {/* Multi-Image File Picker */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2">
-              صورة غلاف المسجد (رفع من ذاكرة الجهاز أو المعرض)
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-slate-300">
+                معرض صور المسجد (يمكنك اختيار عدة صور معاً - حتى 10 صور)
+              </label>
+              <span className="text-xs text-brand-400 font-bold">
+                {uploadedImages.length}/10 صور مرفوعة
+              </span>
+            </div>
 
-            {/* Hidden native file input */}
+            {/* Hidden native multi-file input */}
             <input
               type="file"
               ref={fileInputRef}
-              onChange={handleFileChange}
+              onChange={handleFilesChange}
               accept="image/jpeg,image/png,image/webp"
+              multiple
               className="hidden"
             />
 
-            {formData.coverUrl ? (
-              <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-slate-950 max-w-md">
-                <img
-                  src={formData.coverUrl}
-                  alt="معاينة غلاف المسجد"
-                  className="w-full h-48 object-cover rounded-2xl"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-between p-4">
-                  <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold bg-black/60 px-2.5 py-1 rounded-lg">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>تم الرفع والتخزين بنجاح</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={removeSelectedImage}
-                    className="p-1.5 bg-rose-500/80 hover:bg-rose-500 text-white rounded-lg transition-colors"
-                    title="حذف الصورة"
+            {/* Images Grid */}
+            {uploadedImages.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-4">
+                {uploadedImages.map((img, idx) => (
+                  <div
+                    key={idx}
+                    className={`relative rounded-2xl overflow-hidden border bg-slate-950 group ${
+                      img.isCover ? 'border-amber-400 ring-2 ring-amber-400/30' : 'border-slate-800'
+                    }`}
                   >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
+                    <img src={img.url} alt="" className="w-full h-32 object-cover" />
+
+                    {/* Cover Badge */}
+                    {img.isCover && (
+                      <div className="absolute top-2 right-2 bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md">
+                        <Star className="w-3 h-3 fill-slate-950" />
+                        <span>صورة الغلاف</span>
+                      </div>
+                    )}
+
+                    {/* Actions Overlay */}
+                    <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
+                      {!img.isCover && (
+                        <button
+                          type="button"
+                          onClick={() => setAsCover(idx)}
+                          className="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-bold"
+                          title="تعيين كصورة غلاف رئيسية"
+                        >
+                          تعيين كغلاف
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="p-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white"
+                        title="حذف الصورة"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ) : (
+            )}
+
+            {/* Upload Trigger Area */}
+            {uploadedImages.length < 10 && (
               <div
                 onClick={() => !uploadingImage && fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center cursor-pointer transition-all ${
@@ -435,18 +492,20 @@ export const ProjectFormPage: React.FC = () => {
                 {uploadingImage ? (
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 className="w-8 h-8 text-brand-400 animate-spin" />
-                    <p className="text-xs text-brand-400 font-bold">جاري رفع الصورة إلى التخزين السحابي...</p>
+                    <p className="text-xs text-brand-400 font-bold">
+                      جاري رفع وتخزين الصور في التخزين السحابي...
+                    </p>
                   </div>
                 ) : (
                   <>
                     <div className="w-14 h-14 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-brand-400 mb-3">
-                      <Upload className="w-6 h-6" />
+                      <Images className="w-6 h-6" />
                     </div>
                     <p className="text-sm font-bold text-white text-center">
-                      اضغط لاختيار صورة من جهازك / المعرض
+                      اضغط لتحديد صورة أو عدة صور من جهازك (Multi-select)
                     </p>
                     <p className="text-xs text-slate-500 mt-1 text-center">
-                      يدعم JPG, PNG, WEBP (الحد الأقصى 8MB)
+                      اختر حتى 10 صور - أول صورة ستكون الغلاف تلقائياً ويمكنك تغييرها
                     </p>
                   </>
                 )}
