@@ -3,7 +3,7 @@ class AppConfig {
   static const String appTagline = 'خدمة بيوت الله';
 
   // Live Cloud API URL on Render
-  static const String baseUrl = 'https://masajid-api.onrender.com/api';
+  static const String baseUrl = 'https://masajid-1ggr.onrender.com/api';
 
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 30);
