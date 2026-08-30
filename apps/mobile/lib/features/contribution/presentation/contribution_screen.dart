@@ -28,7 +28,7 @@ class _ContributionScreenState extends ConsumerState<ContributionScreen> {
   bool _isSubmitting = false;
   String? _errorMessage;
 
-  final TextEditingController _donorNameController = TextEditingController(text: 'فاعل خير');
+  final TextEditingController _donorNameController = TextEditingController();
   final TextEditingController _donorPhoneController = TextEditingController();
 
   Future<void> _pickReceiptImage() async {
