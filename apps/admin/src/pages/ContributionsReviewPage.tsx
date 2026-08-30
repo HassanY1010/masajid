@@ -60,14 +60,14 @@ export const ContributionsReviewPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">مراجعة المساهمات وسندات التحويل</h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">مراجعة المساهمات وسندات التحويل</h1>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">
             تدقيق السندات البنكية المرفوعة، قبول الأسهم المساهم بها أو رفضها مع السبب
           </p>
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex bg-slate-900 border border-slate-800 p-1.5 rounded-2xl gap-1">
+        <div className="flex flex-wrap bg-slate-900 border border-slate-800 p-1.5 rounded-2xl gap-1 w-full sm:w-auto">
           {[
             { id: 'PENDING', label: 'قيد المراجعة' },
             { id: 'APPROVED', label: 'المقبولة' },
@@ -77,7 +77,7 @@ export const ContributionsReviewPage: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setStatusFilter(tab.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-colors text-center ${
                 statusFilter === tab.id
                   ? 'bg-brand-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800'
