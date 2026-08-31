@@ -28,6 +28,7 @@ export const ContributionsReviewPage: React.FC = () => {
       apiClient.get<any>('/admin/contributions', {
         params: { status: statusFilter || undefined },
       }),
+    placeholderData: (previousData) => previousData,
   });
 
   const approveMutation = useMutation({

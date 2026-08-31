@@ -1,5 +1,7 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard,
@@ -16,6 +18,7 @@ import {
 
 export const Layout: React.FC = () => {
   const { admin, logout } = useAuth();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
@@ -49,7 +52,7 @@ export const Layout: React.FC = () => {
             </div>
           </div>
 
-          {/* Navigation Links */}
+          {/* Navigation Links with Smart Hover Prefetching */}
           <nav className="mt-6 space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -58,6 +61,29 @@ export const Layout: React.FC = () => {
                   key={item.to}
                   to={item.to}
                   end={item.to === '/'}
+                  onMouseEnter={() => {
+                    if (item.to === '/') {
+                      queryClient.prefetchQuery({
+                        queryKey: ['admin-stats'],
+                        queryFn: () => apiClient.get<any>('/admin/dashboard'),
+                      });
+                    } else if (item.to === '/projects') {
+                      queryClient.prefetchQuery({
+                        queryKey: ['admin-projects', '', '', ''],
+                        queryFn: () => apiClient.get<any>('/admin/projects'),
+                      });
+                    } else if (item.to === '/contributions') {
+                      queryClient.prefetchQuery({
+                        queryKey: ['admin-contributions', 'PENDING'],
+                        queryFn: () => apiClient.get<any>('/admin/contributions', { params: { status: 'PENDING' } }),
+                      });
+                    } else if (item.to === '/bank-accounts') {
+                      queryClient.prefetchQuery({
+                        queryKey: ['admin-bank-accounts'],
+                        queryFn: () => apiClient.get<any[]>('/admin/bank-accounts'),
+                      });
+                    }
+                  }}
                   className={({ isActive }) =>
                     `flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                       isActive

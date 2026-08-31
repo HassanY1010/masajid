@@ -31,7 +31,7 @@ export const ProjectsListPage: React.FC = () => {
     return () => clearTimeout(handler);
   }, [search]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isPlaceholderData } = useQuery({
     queryKey: ['admin-projects', debouncedSearch, statusFilter, categoryFilter],
     queryFn: () =>
       apiClient.get<any>('/admin/projects', {
@@ -41,6 +41,7 @@ export const ProjectsListPage: React.FC = () => {
           category: categoryFilter || undefined,
         },
       }),
+    placeholderData: (previousData) => previousData,
   });
 
   const publishMutation = useMutation({

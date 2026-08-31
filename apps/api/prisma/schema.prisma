@@ -113,6 +113,8 @@ model Project {
 
   @@index([status])
   @@index([isPublished])
+  @@index([isPublished, status, createdAt])
+  @@index([category, isPublished])
   @@index([governorate])
   @@index([createdAt])
   @@map("projects")
@@ -128,6 +130,7 @@ model ProjectImage {
   sortOrder  Int              @default(0)
   createdAt  DateTime         @default(now())
 
+  @@index([projectId, sortOrder])
   @@index([projectId])
   @@map("project_images")
 }
@@ -159,6 +162,7 @@ model BankAccount {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  @@index([isActive, sortOrder])
   @@map("bank_accounts")
 }
 
@@ -180,7 +184,9 @@ model Contribution {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
+  @@index([status, createdAt])
   @@index([status])
+  @@index([projectId, status])
   @@index([projectId])
   @@index([createdAt])
   @@map("contributions")
