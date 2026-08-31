@@ -63,7 +63,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: RefreshIndicator(
         color: AppTheme.primary,
         onRefresh: () async {
-          ref.invalidate(publicProjectsProvider);
+          await ref.refresh(publicProjectsProvider(selectedCategory).future);
         },
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -239,7 +239,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () => ref.invalidate(publicProjectsProvider),
+                      onPressed: () {
+                        ref.refresh(publicProjectsProvider(selectedCategory));
+                      },
                       child: const Text('إعادة المحاولة'),
                     ),
                   ],
