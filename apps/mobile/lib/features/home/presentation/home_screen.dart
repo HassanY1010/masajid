@@ -140,6 +140,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               child: TextField(
                 controller: _searchController,
+                onChanged: (val) {
+                  setState(() {});
+                },
                 decoration: const InputDecoration(
                   hintText: 'ابحث عن اسم المسجد أو المحافظة...',
                   hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 14),
@@ -243,17 +246,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
               data: (projects) {
-                if (projects.isEmpty) {
+                final searchQuery = _searchController.text.trim().toLowerCase();
+                final filteredProjects = searchQuery.isEmpty
+                    ? projects
+                    : projects.where((p) {
+                        return p.title.toLowerCase().contains(searchQuery) ||
+                            p.mosqueName.toLowerCase().contains(searchQuery) ||
+                            p.governorate.toLowerCase().contains(searchQuery) ||
+                            p.district.toLowerCase().contains(searchQuery);
+                      }).toList();
+
+                if (filteredProjects.isEmpty) {
                   return Container(
                     padding: const EdgeInsets.all(40),
                     alignment: Alignment.center,
-                    child: const Column(
+                    child: Column(
                       children: [
-                        Icon(Icons.mosque, size: 54, color: AppTheme.textMuted),
-                        SizedBox(height: 12),
+                        const Icon(Icons.mosque, size: 54, color: AppTheme.textMuted),
+                        const SizedBox(height: 12),
                         Text(
-                          'لا توجد مشاريع متاحة في هذا القسم حالياً',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                          searchQuery.isNotEmpty
+                              ? 'لا توجد نتائج مطابقة لبحثك'
+                              : 'لا توجد مشاريع متاحة في هذا القسم حالياً',
+                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
                         ),
                       ],
                     ),
@@ -263,10 +278,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 return ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: projects.length,
+                  itemCount: filteredProjects.length,
                   separatorBuilder: (context, index) => const SizedBox(height: 16),
                   itemBuilder: (context, index) {
-                    final p = projects[index];
+                    final p = filteredProjects[index];
                     return ProjectCard(
                       project: p,
                       onTap: () => context.push('/project/${p.id}'),
