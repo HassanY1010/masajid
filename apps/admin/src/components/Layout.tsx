@@ -121,7 +121,7 @@ export const Layout: React.FC = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Navbar */}
-        <header className="h-16 border-b border-slate-800 bg-slate-900/60 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-16 border-b border-slate-800 bg-slate-900/60 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -129,25 +129,15 @@ export const Layout: React.FC = () => {
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            <span className="text-sm font-semibold text-brand-400 hidden sm:inline-block">
+            <span className="text-sm font-semibold text-brand-400">
               نظام إدارة احتياجات ومشاريع المساجد
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <a
-              href="https://masajid-1ggr.onrender.com/docs/swagger"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-brand-400 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/50 transition-colors"
-            >
-              <span>Swagger API</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-            <div className="h-4 w-px bg-slate-800"></div>
-            <div className="text-xs text-slate-400 font-mono bg-slate-800/50 px-2.5 py-1 rounded border border-slate-700">
-              v1.0.0 Live
-            </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-400 font-medium hidden sm:inline-block">
+              {admin?.name}
+            </span>
           </div>
         </header>
 
