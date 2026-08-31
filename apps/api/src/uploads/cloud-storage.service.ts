@@ -53,6 +53,8 @@ export class CloudStorageService implements OnModuleInit {
       }
 
       // Schedule daily orphan consistency recovery (Runs every 24 hours after a 5 min startup grace period)
+      this.logger.log('🕒 [STORAGE CLEANUP] Scheduled orphan recovery initialized (First run in 5m, then every 24h)');
+
       setTimeout(() => {
         this.performScheduledOrphanCleanup().catch((err) => {
           this.logger.warn(`Initial background storage audit failed: ${err.message}`);
