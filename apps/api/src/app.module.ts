@@ -10,6 +10,7 @@ import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AuditModule } from './common/audit/audit.module';
+import { CacheModule } from './common/cache/cache.module';
 import { HealthModule } from './health/health.module';
 
 @Module({
@@ -37,6 +38,7 @@ import { HealthModule } from './health/health.module';
     BankAccountsModule,
     UploadsModule,
     DashboardModule,
+    CacheModule,
     HealthModule,
   ],
   providers: [

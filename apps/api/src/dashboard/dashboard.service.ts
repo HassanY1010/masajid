@@ -1,12 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ContributionStatus, ProjectStatus } from '@masajid/shared-types';
+import { MemoryCacheService } from '../common/cache/memory-cache.service';
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: MemoryCacheService,
+  ) {}
 
   async getStats() {
+    const cacheKey = 'admin:dashboard:stats';
+    const cached = this.cache.get<any>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const [
       totalProjects,
       publishedProjects,
@@ -47,7 +57,7 @@ export class DashboardService {
       }),
     ]);
 
-    return {
+    const result = {
       totalProjects,
       publishedProjects,
       fundingProjects,
@@ -59,5 +69,10 @@ export class DashboardService {
       recentContributions,
       recentProjects,
     };
+
+    // Cache stats for 15 seconds to eliminate consecutive DB load spikes
+    this.cache.set(cacheKey, result, 15000);
+
+    return result;
   }
 }

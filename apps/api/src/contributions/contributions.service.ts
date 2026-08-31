@@ -11,6 +11,7 @@ import { CreateContributionDto, RejectContributionDto } from './dto/contribution
 import { ContributionStatus, ProjectStatus, AuditAction } from '@masajid/shared-types';
 
 import { CloudStorageService } from '../uploads/cloud-storage.service';
+import { MemoryCacheService } from '../common/cache/memory-cache.service';
 
 @Injectable()
 export class ContributionsService {
@@ -20,6 +21,7 @@ export class ContributionsService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly cloudStorage: CloudStorageService,
+    private readonly cache: MemoryCacheService,
   ) {}
 
   // Visitor: Submit new contribution
@@ -252,13 +254,16 @@ export class ContributionsService {
         entity: 'Contribution',
         entityId: id,
         metadata: {
-          projectId: project.id,
-          amount: contribution.amount,
+          projectId: contribution.projectId,
           shares: contribution.shares,
-          newFundedShares,
-          isFullyFunded,
+          amount: contribution.amount,
         },
       });
+
+      // Invalidate project and dashboard stats caches immediately
+      this.cache.invalidate('project');
+      this.cache.invalidate('projects');
+      this.cache.invalidate('admin:dashboard');
 
       this.logger.log(
         `✅ Contribution ${id} APPROVED by admin ${adminId}. Project ${project.id} is now at ${newFundedShares}/${project.totalShares} shares.`,
@@ -300,6 +305,8 @@ export class ContributionsService {
       entityId: id,
       metadata: { reason: dto.reason },
     });
+
+    this.cache.invalidate('admin:dashboard');
 
     this.logger.warn(`❌ Contribution ${id} REJECTED by admin ${adminId}. Reason: ${dto.reason}`);
 

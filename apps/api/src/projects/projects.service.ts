@@ -18,6 +18,7 @@ import {
   AuditAction,
   ProjectImageType,
 } from '@masajid/shared-types';
+import { MemoryCacheService } from '../common/cache/memory-cache.service';
 
 @Injectable()
 export class ProjectsService {
@@ -27,6 +28,7 @@ export class ProjectsService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly storageService: CloudStorageService,
+    private readonly cache: MemoryCacheService,
   ) {}
 
   // Enrich project with calculated financial fields
@@ -56,6 +58,12 @@ export class ProjectsService {
     const page = Math.max(1, Number(query.page) || 1);
     const limit = Math.max(1, Math.min(50, Number(query.limit) || 10));
     const skip = (page - 1) * limit;
+
+    const cacheKey = `projects:public:${query.category || 'all'}:${query.governorate || 'all'}:${query.search || ''}:${page}:${limit}`;
+    const cached = this.cache.get<any>(cacheKey);
+    if (cached) {
+      return cached;
+    }
 
     const where: any = {
       isPublished: true,
@@ -97,7 +105,7 @@ export class ProjectsService {
       this.prisma.project.count({ where }),
     ]);
 
-    return {
+    const result = {
       items: items.map((p) => {
         const formatted = this.formatProject(p);
         // Exclude unnecessary deep internal relations from public list query
@@ -112,10 +120,21 @@ export class ProjectsService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+
+    // Cache public project lists for 30 seconds
+    this.cache.set(cacheKey, result, 30000);
+
+    return result;
   }
 
   // Public: Get single project details
   async getPublicProjectById(id: string) {
+    const cacheKey = `project:public:${id}`;
+    const cached = this.cache.get<any>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const project = await this.prisma.project.findFirst({
       where: { id, isPublished: true },
       include: {
@@ -128,7 +147,9 @@ export class ProjectsService {
       throw new NotFoundException('المشروع غير موجود أو غير متاح حالياً');
     }
 
-    return this.formatProject(project);
+    const result = this.formatProject(project);
+    this.cache.set(cacheKey, result, 30000);
+    return result;
   }
 
   // Admin: Get all projects (including Drafts and Archived)
@@ -233,6 +254,10 @@ export class ProjectsService {
       entityId: project.id,
       metadata: { title: project.title, mosqueName: project.mosqueName },
     });
+
+    // Invalidate project and dashboard stats caches immediately
+    this.cache.invalidate('projects');
+    this.cache.invalidate('admin:dashboard');
 
     return this.formatProject(project);
   }
@@ -361,6 +386,9 @@ export class ProjectsService {
       entityId: project.id,
     });
 
+    this.cache.invalidate('projects');
+    this.cache.invalidate('admin:dashboard');
+
     return this.formatProject(updated);
   }
 
@@ -453,6 +481,9 @@ export class ProjectsService {
       entity: 'Project',
       entityId: id,
     });
+
+    this.cache.invalidate('projects');
+    this.cache.invalidate('admin:dashboard');
 
     return { message: 'تم حذف المشروع بنجاح' };
   }

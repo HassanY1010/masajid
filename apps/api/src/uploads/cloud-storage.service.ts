@@ -176,12 +176,21 @@ export class CloudStorageService implements OnModuleInit {
     };
   }
 
+  // Short-lived in-memory cache for Signed URLs to prevent redundant network round-trips
+  private readonly signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+
   /**
    * Generate short-lived Signed URL for private assets (e.g. bank transfer receipts)
    * Expires in expiresInSeconds (default: 300s / 5 minutes)
    */
   async getSignedUrl(storageKey?: string | null, expiresInSeconds = 300): Promise<string | null> {
     if (!storageKey) return null;
+
+    const now = Date.now();
+    const cached = this.signedUrlCache.get(storageKey);
+    if (cached && cached.expiresAt > now) {
+      return cached.url;
+    }
 
     if (this.isSupabaseEnabled && this.supabase) {
       try {
@@ -194,7 +203,14 @@ export class CloudStorageService implements OnModuleInit {
           return null;
         }
 
-        return data?.signedUrl || null;
+        const signedUrl = data?.signedUrl || null;
+        if (signedUrl) {
+          // Cache for (expiresInSeconds - 60) seconds to ensure safe validity buffer
+          const safeTtlMs = Math.max(30000, (expiresInSeconds - 60) * 1000);
+          this.signedUrlCache.set(storageKey, { url: signedUrl, expiresAt: now + safeTtlMs });
+        }
+
+        return signedUrl;
       } catch (err: any) {
         this.logger.error(`Exception generating signed URL: ${err.message}`);
         return null;

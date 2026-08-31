@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { ResponseTimingInterceptor } from './common/interceptors/timing.interceptor';
 
 async function bootstrap() {
   const logger = new Logger('MasajidBootstrap');
@@ -109,7 +110,7 @@ async function bootstrap() {
       },
     }),
   );
-  app.useGlobalInterceptors(new TransformInterceptor());
+  app.useGlobalInterceptors(new ResponseTimingInterceptor(), new TransformInterceptor());
   app.useGlobalFilters(new AllExceptionsFilter());
 
   // Swagger Documentation
