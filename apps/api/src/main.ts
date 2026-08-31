@@ -4,7 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
-import compression from 'compression';
+import * as compression from 'compression';
 import { join } from 'path';
 import * as fs from 'fs';
 import { AppModule } from './app.module';
