@@ -4,16 +4,12 @@ import '../models/project_model.dart';
 import '../models/bank_account_model.dart';
 
 final publicProjectsProvider = FutureProvider.family<List<ProjectModel>, String?>((ref, category) async {
-  try {
-    final response = await ApiClient.dio.get(
-      '/projects',
-      queryParameters: category != null && category.isNotEmpty ? {'category': category} : null,
-    );
-    final data = response.data['data']?['items'] as List<dynamic>? ?? [];
-    return data.map((json) => ProjectModel.fromJson(json)).toList();
-  } catch (e) {
-    return [];
-  }
+  final response = await ApiClient.dio.get(
+    '/projects',
+    queryParameters: category != null && category.isNotEmpty ? {'category': category} : null,
+  );
+  final data = response.data['data']?['items'] as List<dynamic>? ?? [];
+  return data.map((json) => ProjectModel.fromJson(json)).toList();
 });
 
 final projectDetailsProvider = FutureProvider.family<ProjectModel, String>((ref, id) async {

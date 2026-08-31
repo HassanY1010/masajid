@@ -67,6 +67,8 @@ class ProjectModel {
   final List<ProjectImageModel> images;
   final List<ProjectUpdateModel> updates;
 
+  final String? _explicitCoverImageUrl;
+
   ProjectModel({
     required this.id,
     required this.title,
@@ -89,7 +91,8 @@ class ProjectModel {
     required this.fundingPercentage,
     required this.images,
     required this.updates,
-  });
+    String? explicitCoverImageUrl,
+  }) : _explicitCoverImageUrl = explicitCoverImageUrl;
 
   factory ProjectModel.fromJson(Map<String, dynamic> json) {
     return ProjectModel(
@@ -112,6 +115,7 @@ class ProjectModel {
       remainingShares: json['remainingShares'] ?? 0,
       remainingAmount: (json['remainingAmount'] as num?)?.toDouble() ?? 0.0,
       fundingPercentage: json['fundingPercentage'] ?? 0,
+      explicitCoverImageUrl: json['coverImageUrl'],
       images: (json['images'] as List<dynamic>?)
               ?.map((e) => ProjectImageModel.fromJson(e))
               .toList() ??
@@ -124,6 +128,9 @@ class ProjectModel {
   }
 
   String? get coverImageUrl {
+    if (_explicitCoverImageUrl != null && _explicitCoverImageUrl!.isNotEmpty) {
+      return _explicitCoverImageUrl;
+    }
     if (images.isEmpty) return null;
     final cover = images.firstWhere(
       (img) => img.type == 'COVER',
