@@ -141,4 +141,61 @@ export class CloudStorageService implements OnModuleInit {
       sizeBytes: processedBuffer.length,
     };
   }
+
+  /**
+   * Delete single file from Supabase Storage or local disk.
+   */
+  async deleteFile(storageKey?: string | null): Promise<boolean> {
+    if (!storageKey) return false;
+    return (await this.deleteFiles([storageKey])).deletedCount > 0;
+  }
+
+  /**
+   * Batch delete multiple files from Supabase Storage and local disk with retry resilience.
+   */
+  async deleteFiles(storageKeys: string[]): Promise<{ deletedCount: number; errors: string[] }> {
+    const validKeys = storageKeys.filter((k) => typeof k === 'string' && k.trim().length > 0);
+    if (validKeys.length === 0) {
+      return { deletedCount: 0, errors: [] };
+    }
+
+    let deletedCount = 0;
+    const errors: string[] = [];
+
+    // 1. Delete from Supabase Storage if enabled
+    if (this.isSupabaseEnabled && this.supabase) {
+      try {
+        const { data, error } = await this.supabase.storage
+          .from(this.bucketName)
+          .remove(validKeys);
+
+        if (error) {
+          this.logger.error(`Supabase batch delete error: ${error.message}`);
+          errors.push(error.message);
+        } else if (data) {
+          deletedCount += data.length;
+          this.logger.log(`🗑️ Removed ${data.length} files from Supabase Storage bucket: ${this.bucketName}`);
+        }
+      } catch (err: any) {
+        this.logger.error(`Supabase batch delete exception: ${err.message}`);
+        errors.push(err.message);
+      }
+    }
+
+    // 2. Also cleanup from local filesystem if keys exist locally
+    for (const key of validKeys) {
+      try {
+        const localFilePath = path.join(process.cwd(), 'uploads', key);
+        if (fs.existsSync(localFilePath)) {
+          fs.unlinkSync(localFilePath);
+          this.logger.log(`🗑️ Removed local disk file: ${localFilePath}`);
+          deletedCount++;
+        }
+      } catch (err: any) {
+        this.logger.warn(`Local file deletion failed for ${key}: ${err.message}`);
+      }
+    }
+
+    return { deletedCount, errors };
+  }
 }

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
+import { CloudStorageService } from '../uploads/cloud-storage.service';
 import {
   CreateProjectDto,
   UpdateProjectDto,
@@ -25,6 +26,7 @@ export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly storageService: CloudStorageService,
   ) {}
 
   // Enrich project with calculated financial fields
@@ -389,18 +391,22 @@ export class ProjectsService {
     return update;
   }
 
-  // Admin: Delete / Archive project
+  // Admin: Delete / Archive project with Complete Storage & Database Cleanup
   async deleteProject(id: string, adminId?: string) {
     const project = await this.prisma.project.findUnique({
       where: { id },
-      include: { contributions: true },
+      include: {
+        images: true,
+        contributions: true,
+        updates: true,
+      },
     });
 
     if (!project) {
       throw new NotFoundException('المشروع غير موجود');
     }
 
-    // If there are approved contributions, don't hard delete; archive instead
+    // If there are approved contributions, archive rather than hard delete for financial audit compliance
     const hasApproved = project.contributions.some((c) => c.status === 'APPROVED');
     if (hasApproved) {
       await this.prisma.project.update({
@@ -418,7 +424,28 @@ export class ProjectsService {
       return { message: 'تمت أرشفة المشروع نظراً لوجود مساهمات مسجلة عليه' };
     }
 
+    // Collect all storage keys associated with this project (images, receipts, update images)
+    const storageKeys: string[] = [];
+    
+    // Project images
+    project.images.forEach((img) => {
+      if (img.storageKey) storageKeys.push(img.storageKey);
+    });
+
+    // Pending/Rejected contribution receipts
+    project.contributions.forEach((c) => {
+      if (c.receiptStorageKey) storageKeys.push(c.receiptStorageKey);
+    });
+
+    // 1. Delete from database in cascade
     await this.prisma.project.delete({ where: { id } });
+
+    // 2. Perform Storage Cleanup on Supabase and local disk
+    if (storageKeys.length > 0) {
+      this.storageService.deleteFiles(storageKeys).catch((err) => {
+        this.logger.error(`Storage cleanup failed for deleted project ${id}: ${err.message}`);
+      });
+    }
 
     await this.auditService.log({
       adminId,

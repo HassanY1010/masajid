@@ -26,13 +26,31 @@ class ProjectDetailsScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 48, color: AppTheme.rose),
-                const SizedBox(height: 12),
-                const Text('تعذر تحميل تفاصيل المشروع'),
+                const Icon(Icons.info_outline, size: 54, color: AppTheme.textMuted),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => ref.invalidate(projectDetailsProvider(projectId)),
-                  child: const Text('إعادة المحاولة'),
+                const Text(
+                  'هذا المشروع لم يعد متاحاً أو تم حذفه',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'يرجى العودة إلى قائمة المشاريع لتصفح الاحتياجات الأخرى',
+                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('العودة للمشاريع'),
+                    ),
+                    const SizedBox(width: 12),
+                    OutlinedButton(
+                      onPressed: () => ref.refresh(projectDetailsProvider(projectId)),
+                      child: const Text('إعادة المحاولة'),
+                    ),
+                  ],
                 ),
               ],
             ),
