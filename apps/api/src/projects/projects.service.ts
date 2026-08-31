@@ -61,7 +61,7 @@ export class ProjectsService {
 
     const cacheKey = `projects:public:${query.category || 'all'}:${query.governorate || 'all'}:${query.search || ''}:${page}:${limit}`;
 
-    return this.cache.getOrSet(cacheKey, 30000, async () => {
+    return this.cache.getOrSet(cacheKey, 5000, async () => {
       const where: any = {
         isPublished: true,
         status: {

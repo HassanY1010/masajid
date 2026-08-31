@@ -60,14 +60,16 @@ async function bootstrap() {
 
   // CORS Configuration
   const isProduction = process.env.NODE_ENV === 'production';
-  const defaultDevOrigins = ['http://localhost:5173', 'http://localhost:3000'];
+  const defaultDevOrigins = ['http://localhost:5173', 'http://localhost:3000', 'https://masajid-admin.onrender.com'];
   const configuredOrigins = process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
     : [];
 
-  const allowedOrigins = isProduction
-    ? configuredOrigins // In production, must be explicitly declared
-    : (configuredOrigins.length > 0 ? configuredOrigins : defaultDevOrigins);
+  const allowedOrigins = configuredOrigins.length > 0 
+    ? configuredOrigins 
+    : (isProduction ? ['https://masajid-admin.onrender.com'] : defaultDevOrigins);
+
+  const allowsAll = allowedOrigins.includes('*');
 
   app.enableCors({
     origin: (origin, callback) => {
@@ -76,7 +78,7 @@ async function bootstrap() {
         return callback(null, true);
       }
 
-      if (allowedOrigins.includes(origin) || (!isProduction && allowedOrigins.includes('*'))) {
+      if (allowsAll || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 

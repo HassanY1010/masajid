@@ -35,7 +35,7 @@ services:
       - key: JWT_REFRESH_EXPIRATION
         value: 7d
       - key: CORS_ORIGIN
-        value: "*"
+        value: "https://masajid-admin.onrender.com,http://localhost:5173,http://localhost:3000"
       - key: ADMIN_EMAIL
         value: admin@masajid.app
       - key: ADMIN_PASSWORD
