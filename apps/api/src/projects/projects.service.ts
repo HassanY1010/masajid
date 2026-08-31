@@ -96,7 +96,15 @@ export class ProjectsService {
     ]);
 
     return {
-      items: items.map((p) => this.formatProject(p)),
+      items: items.map((p) => {
+        const formatted = this.formatProject(p);
+        // Exclude unnecessary deep internal relations from public list query
+        return {
+          ...formatted,
+          // Guarantee clean cover image URL for fast mobile cards
+          coverImageUrl: formatted.images?.find((img: any) => img.type === 'COVER')?.url || formatted.images?.[0]?.url || null,
+        };
+      }),
       total,
       page,
       limit,
