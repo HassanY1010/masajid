@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { ProjectCategory } from '@masajid/shared-types';
 import {
@@ -139,9 +139,13 @@ export const ProjectFormPage: React.FC = () => {
     );
   };
 
+  const queryClient = useQueryClient();
+
   const mutation = useMutation({
     mutationFn: (payload: any) => api.post('/admin/projects', payload),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       navigate('/projects');
     },
     onError: (err: any) => {

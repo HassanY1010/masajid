@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
-import { ProjectsListPage } from './pages/ProjectsListPage';
-import { ProjectFormPage } from './pages/ProjectFormPage';
-import { ContributionsReviewPage } from './pages/ContributionsReviewPage';
-import { BankAccountsPage } from './pages/BankAccountsPage';
-import { AuditLogsPage } from './pages/AuditLogsPage';
+
+// Lazy load non-landing heavy admin modules for instant initial load
+const ProjectsListPage = lazy(() => import('./pages/ProjectsListPage').then((m) => ({ default: m.ProjectsListPage })));
+const ProjectFormPage = lazy(() => import('./pages/ProjectFormPage').then((m) => ({ default: m.ProjectFormPage })));
+const ContributionsReviewPage = lazy(() => import('./pages/ContributionsReviewPage').then((m) => ({ default: m.ContributionsReviewPage })));
+const BankAccountsPage = lazy(() => import('./pages/BankAccountsPage').then((m) => ({ default: m.BankAccountsPage })));
+const AuditLogsPage = lazy(() => import('./pages/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,33 +42,42 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
+const PageLoader = () => (
+  <div className="p-12 text-center text-slate-400 font-semibold animate-pulse flex items-center justify-center gap-3">
+    <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+    <span>جاري تحميل الصفحة...</span>
+  </div>
+);
+
 export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
 
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<DashboardPage />} />
-              <Route path="projects" element={<ProjectsListPage />} />
-              <Route path="projects/new" element={<ProjectFormPage />} />
-              <Route path="projects/:id/edit" element={<ProjectFormPage />} />
-              <Route path="contributions" element={<ContributionsReviewPage />} />
-              <Route path="bank-accounts" element={<BankAccountsPage />} />
-              <Route path="audit-logs" element={<AuditLogsPage />} />
-            </Route>
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Layout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<DashboardPage />} />
+                <Route path="projects" element={<ProjectsListPage />} />
+                <Route path="projects/new" element={<ProjectFormPage />} />
+                <Route path="projects/:id/edit" element={<ProjectFormPage />} />
+                <Route path="contributions" element={<ContributionsReviewPage />} />
+                <Route path="bank-accounts" element={<BankAccountsPage />} />
+                <Route path="audit-logs" element={<AuditLogsPage />} />
+              </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
