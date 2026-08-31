@@ -130,13 +130,10 @@ export const BankAccountsPage: React.FC = () => {
 
               <div className="flex items-center justify-end pt-2 border-t border-slate-800/60 gap-2">
                 <button
-                  onClick={() => {
-                    if (confirm('هل أنت متأكد من حذف هذا الحساب؟')) {
-                      deleteMutation.mutate(acc.id);
-                    }
-                  }}
-                  className="p-2 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors"
-                  title="حذف"
+                  onClick={() => deleteMutation.mutate(acc.id)}
+                  disabled={deleteMutation.isPending}
+                  className="p-2 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+                  title="حذف الحساب مباشرة"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

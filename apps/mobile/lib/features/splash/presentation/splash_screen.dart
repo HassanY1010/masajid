@@ -21,10 +21,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   void initState() {
     super.initState();
 
-    // 2-Second Precise Animation Lifecycle
+    // 4-Second Precise Animation Lifecycle
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 2400),
     );
 
     _fadeAnimation = CurvedAnimation(
@@ -46,8 +46,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // Exactly 2-second navigation timer
-    _timer = Timer(const Duration(milliseconds: 2000), () {
+    // Exactly 4-second navigation timer
+    _timer = Timer(const Duration(milliseconds: 4000), () {
       if (mounted) {
         context.go('/home');
       }

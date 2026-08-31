@@ -289,12 +289,10 @@ export const ProjectsListPage: React.FC = () => {
                       <Edit className="w-4 h-4" />
                     </Link>
                     <button
-                      onClick={() => {
-                        if (confirm('هل أنت متأكد من حذف هذا المشروع؟')) {
-                          deleteMutation.mutate(project.id);
-                        }
-                      }}
-                      className="p-2 rounded-lg text-rose-400 bg-rose-500/10"
+                      onClick={() => deleteMutation.mutate(project.id)}
+                      disabled={deleteMutation.isPending}
+                      className="p-2 rounded-lg text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 transition-colors disabled:opacity-50"
+                      title="حذف المشروع مباشرة"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -410,13 +408,10 @@ export const ProjectsListPage: React.FC = () => {
                             <Edit className="w-4 h-4" />
                           </Link>
                           <button
-                            onClick={() => {
-                              if (confirm('هل أنت متأكد من حذف أو أرشفة هذا المشروع؟')) {
-                                deleteMutation.mutate(project.id);
-                              }
-                            }}
-                            className="p-2 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors"
-                            title="حذف"
+                            onClick={() => deleteMutation.mutate(project.id)}
+                            disabled={deleteMutation.isPending}
+                            className="p-2 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+                            title="حذف المشروع مباشرة"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

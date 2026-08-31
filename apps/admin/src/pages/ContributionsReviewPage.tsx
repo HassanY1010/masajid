@@ -31,15 +31,18 @@ export const ContributionsReviewPage: React.FC = () => {
     placeholderData: (previousData) => previousData,
   });
 
+  const [actionError, setActionError] = useState<string | null>(null);
+
   const approveMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/admin/contributions/${id}/approve`),
     onSuccess: () => {
+      setActionError(null);
       queryClient.invalidateQueries({ queryKey: ['admin-contributions'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل قبول المساهمة');
+      setActionError(err.message || 'فشل قبول المساهمة');
     },
   });
 
@@ -47,12 +50,13 @@ export const ContributionsReviewPage: React.FC = () => {
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       api.patch(`/admin/contributions/${id}/reject`, { reason }),
     onSuccess: () => {
+      setActionError(null);
       setRejectModalId(null);
       queryClient.invalidateQueries({ queryKey: ['admin-contributions'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     },
     onError: (err: any) => {
-      alert(err.message || 'فشل رفض المساهمة');
+      setActionError(err.message || 'فشل رفض المساهمة');
     },
   });
 
