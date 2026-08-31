@@ -36,6 +36,8 @@ export class CloudStorageService implements OnModuleInit {
     }
   }
 
+  private cleanupInterval: NodeJS.Timeout | null = null;
+
   async onModuleInit() {
     if (this.isSupabaseEnabled && this.supabase) {
       try {
@@ -49,7 +51,37 @@ export class CloudStorageService implements OnModuleInit {
       } catch (err: any) {
         this.logger.warn(`Supabase bucket status check: ${err.message}`);
       }
+
+      // Schedule daily orphan consistency recovery (Runs every 24 hours after a 5 min startup grace period)
+      setTimeout(() => {
+        this.performScheduledOrphanCleanup().catch((err) => {
+          this.logger.warn(`Initial background storage audit failed: ${err.message}`);
+        });
+      }, 5 * 60 * 1000);
+
+      this.cleanupInterval = setInterval(() => {
+        this.performScheduledOrphanCleanup().catch((err) => {
+          this.logger.warn(`Daily background storage audit failed: ${err.message}`);
+        });
+      }, 24 * 60 * 60 * 1000);
     }
+  }
+
+  onModuleDestroy() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
+  }
+
+  /**
+   * Internal scheduled cleanup wrapper
+   */
+  private async performScheduledOrphanCleanup() {
+    this.logger.log('🕒 Starting scheduled daily Supabase Storage consistency audit...');
+    const result = await this.performOrphanCleanup({ dryRun: false, gracePeriodMinutes: 60 });
+    this.logger.log(
+      `🏁 Scheduled storage cleanup finished: ${result.deletedCount} deleted, ${result.protectedCount} protected, ${result.errors.length} errors.`,
+    );
   }
 
   /**
@@ -197,5 +229,106 @@ export class CloudStorageService implements OnModuleInit {
     }
 
     return { deletedCount, errors };
+  }
+
+  /**
+   * Safe Orphan Cleanup Algorithm:
+   * - Queries active DB storage keys
+   * - Scans Supabase bucket
+   * - Enforces Grace Period (e.g. files uploaded in the last 60 minutes are protected)
+   * - Supports Dry Run mode
+   */
+  async performOrphanCleanup(options: {
+    dryRun?: boolean;
+    gracePeriodMinutes?: number;
+    activeDbKeys?: Set<string>;
+  } = {}): Promise<{
+    scannedCount: number;
+    activeCount: number;
+    orphanCandidates: string[];
+    protectedCount: number;
+    deletedCount: number;
+    errors: string[];
+  }> {
+    const dryRun = options.dryRun ?? false;
+    const graceMinutes = options.gracePeriodMinutes ?? 60;
+    const graceCutoff = Date.now() - graceMinutes * 60 * 1000;
+
+    if (!this.isSupabaseEnabled || !this.supabase) {
+      return {
+        scannedCount: 0,
+        activeCount: 0,
+        orphanCandidates: [],
+        protectedCount: 0,
+        deletedCount: 0,
+        errors: ['Supabase not configured'],
+      };
+    }
+
+    try {
+      // List media files in Supabase bucket
+      const { data: files, error } = await this.supabase.storage
+        .from(this.bucketName)
+        .list('media', { limit: 500 });
+
+      if (error || !files) {
+        return {
+          scannedCount: 0,
+          activeCount: 0,
+          orphanCandidates: [],
+          orphanCount: 0,
+          protectedCount: 0,
+          deletedCount: 0,
+          errors: [error ? error.message : 'No files returned'],
+        } as any;
+      }
+
+      const activeKeys = options.activeDbKeys || new Set<string>();
+      const toDelete: string[] = [];
+      let protectedCount = 0;
+
+      files.forEach((file) => {
+        const fullKey = `media/${file.name}`;
+        if (!activeKeys.has(fullKey)) {
+          // Check timestamp in filename (format: 1788158719273-...) for grace period protection
+          const match = file.name.match(/^(\d+)-/);
+          if (match && match[1]) {
+            const uploadTime = parseInt(match[1], 10);
+            if (uploadTime > graceCutoff) {
+              protectedCount++;
+              return; // Protected: uploaded recently
+            }
+          }
+          toDelete.push(fullKey);
+        }
+      });
+
+      let deletedCount = 0;
+      const errors: string[] = [];
+
+      if (!dryRun && toDelete.length > 0) {
+        const deleteRes = await this.deleteFiles(toDelete);
+        deletedCount = deleteRes.deletedCount;
+        errors.push(...deleteRes.errors);
+      }
+
+      return {
+        scannedCount: files.length,
+        activeCount: files.length - toDelete.length - protectedCount,
+        orphanCandidates: toDelete,
+        protectedCount,
+        deletedCount: dryRun ? 0 : deletedCount,
+        errors,
+      };
+    } catch (err: any) {
+      return {
+        scannedCount: 0,
+        activeCount: 0,
+        orphanCandidates: [],
+        protectedCount: 0,
+        deletedCount: 0,
+        errors: [err.message],
+      };
+    }
   }
 }
