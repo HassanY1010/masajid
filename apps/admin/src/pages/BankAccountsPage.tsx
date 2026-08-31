@@ -23,7 +23,7 @@ export const BankAccountsPage: React.FC = () => {
 
   const createMutation = useMutation({
     mutationFn: (payload: any) => api.post('/admin/bank-accounts', payload),
-    onSuccess: () => {
+    onSuccess: (newAcc: any) => {
       setModalOpen(false);
       setFormData({
         name: '',
@@ -34,22 +34,58 @@ export const BankAccountsPage: React.FC = () => {
         currency: 'SAR',
         isActive: true,
       });
-      queryClient.invalidateQueries({ queryKey: ['admin-bank-accounts'] });
+      // Direct cache update with created item
+      if (newAcc?.id) {
+        queryClient.setQueryData(['admin-bank-accounts'], (old: any) => {
+          if (!Array.isArray(old)) return [newAcc];
+          return [...old, newAcc];
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['admin-bank-accounts'] });
+      }
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/bank-accounts/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-bank-accounts'] });
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-bank-accounts'] });
+      const previousData = queryClient.getQueryData(['admin-bank-accounts']);
+
+      // Optimistic delete: remove instantly from UI (0ms latency)
+      queryClient.setQueryData(['admin-bank-accounts'], (old: any) => {
+        if (!Array.isArray(old)) return old;
+        return old.filter((acc: any) => acc.id !== id);
+      });
+
+      return { previousData };
+    },
+    onError: (_err, _id, context: any) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['admin-bank-accounts'], context.previousData);
+      }
     },
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       api.patch(`/admin/bank-accounts/${id}`, { isActive }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-bank-accounts'] });
+    onMutate: async ({ id, isActive }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-bank-accounts'] });
+      const previousData = queryClient.getQueryData(['admin-bank-accounts']);
+
+      // Optimistic toggle
+      queryClient.setQueryData(['admin-bank-accounts'], (old: any) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((acc: any) => (acc.id === id ? { ...acc, isActive } : acc));
+      });
+
+      return { previousData };
+    },
+    onError: (_err, _vars, context: any) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['admin-bank-accounts'], context.previousData);
+      }
     },
   });
 

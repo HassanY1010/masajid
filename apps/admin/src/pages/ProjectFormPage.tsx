@@ -184,10 +184,34 @@ export const ProjectFormPage: React.FC = () => {
   const mutation = useMutation({
     mutationFn: (payload: any) =>
       isEditMode ? api.patch(`/admin/projects/${id}`, payload) : api.post('/admin/projects', payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-project', id] });
+    onSuccess: (savedProject: any) => {
+      // 1. Instantly update specific project cache
+      if (savedProject?.id) {
+        queryClient.setQueryData(['admin-project', savedProject.id], savedProject);
+      }
+
+      // 2. Instantly update project item in all admin-projects list query caches
+      queryClient.setQueriesData({ queryKey: ['admin-projects'] }, (old: any) => {
+        if (!old || !Array.isArray(old.items)) return old;
+        const exists = old.items.some((p: any) => p.id === savedProject?.id);
+        if (exists) {
+          return {
+            ...old,
+            items: old.items.map((p: any) => (p.id === savedProject?.id ? savedProject : p)),
+          };
+        } else if (!isEditMode && savedProject?.id) {
+          return {
+            ...old,
+            items: [savedProject, ...old.items],
+            total: (old.total || 0) + 1,
+          };
+        }
+        return old;
+      });
+
+      // 3. Invalidate statistics in background
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+
       navigate('/projects');
     },
     onError: (err: any) => {

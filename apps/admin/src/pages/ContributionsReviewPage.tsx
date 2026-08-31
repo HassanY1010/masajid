@@ -35,13 +35,43 @@ export const ContributionsReviewPage: React.FC = () => {
 
   const approveMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/admin/contributions/${id}/approve`),
-    onSuccess: () => {
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-contributions'] });
+
+      const previousData = queryClient.getQueryData(['admin-contributions', statusFilter]);
+
+      // Optimistically update contribution status to APPROVED in list (0ms UI latency)
+      queryClient.setQueriesData({ queryKey: ['admin-contributions'] }, (old: any) => {
+        if (!old || !Array.isArray(old.items)) return old;
+        return {
+          ...old,
+          items: old.items.map((c: any) =>
+            c.id === id ? { ...c, status: 'APPROVED', approvedAt: new Date().toISOString() } : c,
+          ),
+        };
+      });
+
+      return { previousData };
+    },
+    onSuccess: (updated: any) => {
       setActionError(null);
-      queryClient.invalidateQueries({ queryKey: ['admin-contributions'] });
+      // Update with exact server response
+      if (updated?.id) {
+        queryClient.setQueriesData({ queryKey: ['admin-contributions'] }, (old: any) => {
+          if (!old || !Array.isArray(old.items)) return old;
+          return {
+            ...old,
+            items: old.items.map((c: any) => (c.id === updated.id ? { ...c, ...updated } : c)),
+          };
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
     },
-    onError: (err: any) => {
+    onError: (err: any, _id, context: any) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['admin-contributions', statusFilter], context.previousData);
+      }
       setActionError(err.message || 'فشل قبول المساهمة');
     },
   });
@@ -49,13 +79,42 @@ export const ContributionsReviewPage: React.FC = () => {
   const rejectMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       api.patch(`/admin/contributions/${id}/reject`, { reason }),
-    onSuccess: () => {
-      setActionError(null);
+    onMutate: async ({ id, reason }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-contributions'] });
+
+      const previousData = queryClient.getQueryData(['admin-contributions', statusFilter]);
+
+      // Optimistically update contribution status to REJECTED
+      queryClient.setQueriesData({ queryKey: ['admin-contributions'] }, (old: any) => {
+        if (!old || !Array.isArray(old.items)) return old;
+        return {
+          ...old,
+          items: old.items.map((c: any) =>
+            c.id === id ? { ...c, status: 'REJECTED', rejectionReason: reason } : c,
+          ),
+        };
+      });
+
       setRejectModalId(null);
-      queryClient.invalidateQueries({ queryKey: ['admin-contributions'] });
+      return { previousData };
+    },
+    onSuccess: (updated: any) => {
+      setActionError(null);
+      if (updated?.id) {
+        queryClient.setQueriesData({ queryKey: ['admin-contributions'] }, (old: any) => {
+          if (!old || !Array.isArray(old.items)) return old;
+          return {
+            ...old,
+            items: old.items.map((c: any) => (c.id === updated.id ? { ...c, ...updated } : c)),
+          };
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     },
-    onError: (err: any) => {
+    onError: (err: any, _vars, context: any) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['admin-contributions', statusFilter], context.previousData);
+      }
       setActionError(err.message || 'فشل رفض المساهمة');
     },
   });

@@ -47,16 +47,71 @@ export const ProjectsListPage: React.FC = () => {
   const publishMutation = useMutation({
     mutationFn: ({ id, isPublished }: { id: string; isPublished: boolean }) =>
       api.patch(`/admin/projects/${id}/publish`, { isPublished }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+    onMutate: async ({ id, isPublished }) => {
+      // Cancel outgoing refetches so they don't overwrite optimistic update
+      await queryClient.cancelQueries({ queryKey: ['admin-projects'] });
+
+      // Snapshot previous queries data across all filter variations
+      const previousData = queryClient.getQueryData(['admin-projects', debouncedSearch, statusFilter, categoryFilter]);
+
+      // Optimistically update project publish status in UI immediately
+      queryClient.setQueriesData({ queryKey: ['admin-projects'] }, (old: any) => {
+        if (!old || !Array.isArray(old.items)) return old;
+        return {
+          ...old,
+          items: old.items.map((p: any) => (p.id === id ? { ...p, isPublished } : p)),
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (_err, _variables, context: any) => {
+      // Rollback on network/server error
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          ['admin-projects', debouncedSearch, statusFilter, categoryFilter],
+          context.previousData,
+        );
+      }
+    },
+    onSettled: () => {
+      // Targeted background revalidation
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/projects/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+    onMutate: async (id: string) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['admin-projects'] });
+
+      // Snapshot previous data for safe rollback
+      const previousData = queryClient.getQueryData(['admin-projects', debouncedSearch, statusFilter, categoryFilter]);
+
+      // Optimistically remove project from list immediately (0ms UI latency)
+      queryClient.setQueriesData({ queryKey: ['admin-projects'] }, (old: any) => {
+        if (!old || !Array.isArray(old.items)) return old;
+        return {
+          ...old,
+          items: old.items.filter((p: any) => p.id !== id),
+          total: Math.max(0, (old.total || 1) - 1),
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (_err, _id, context: any) => {
+      // Safe rollback to restore previous list if server rejected
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          ['admin-projects', debouncedSearch, statusFilter, categoryFilter],
+          context.previousData,
+        );
+      }
+    },
+    onSettled: () => {
+      // Targeted background update
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     },
   });
