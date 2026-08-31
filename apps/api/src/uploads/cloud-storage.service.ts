@@ -3,10 +3,14 @@ import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
 import * as path from 'path';
+import sharp from 'sharp';
 
 export interface UploadResult {
   url: string;
   storageKey: string;
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  sizeBytes?: number;
 }
 
 @Injectable()
@@ -48,44 +52,93 @@ export class CloudStorageService implements OnModuleInit {
     }
   }
 
+  /**
+   * Upload file with automatic WebP compression and cache headers.
+   * For media images: converts to highly optimized WebP format with cache-control.
+   */
   async uploadFile(file: Express.Multer.File, folder: 'media' | 'receipts'): Promise<UploadResult> {
+    const rawBuffer = file.buffer || (file.path && fs.existsSync(file.path) ? fs.readFileSync(file.path) : null);
+    if (!rawBuffer) {
+      throw new Error('Unable to read uploaded file buffer');
+    }
+
+    let processedBuffer = rawBuffer;
+    let extension = path.extname(file.originalname).toLowerCase();
+    let mimeType = file.mimetype;
+
+    // Apply Sharp optimization on media images (Resize & compress to WebP)
+    if (folder === 'media' && file.mimetype.startsWith('image/')) {
+      try {
+        processedBuffer = await sharp(rawBuffer)
+          .rotate() // Auto-orient based on EXIF
+          .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 80, effort: 4 })
+          .toBuffer();
+        extension = '.webp';
+        mimeType = 'image/webp';
+        this.logger.log(`📸 Image optimized with Sharp: ${rawBuffer.length} bytes -> ${processedBuffer.length} bytes`);
+      } catch (err: any) {
+        this.logger.warn(`Sharp image processing failed, using original: ${err.message}`);
+      }
+    }
+
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const uniqueName = `${folder}/${uniqueId}${extension}`;
+
     if (this.isSupabaseEnabled && this.supabase) {
-      const ext = path.extname(file.originalname).toLowerCase();
-      const uniqueName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2, 9)}${ext}`;
-      const fileBuffer = file.buffer || fs.readFileSync(file.path);
+      // 1 year immutable cache header for optimized static media
+      const cacheControl = folder === 'media' ? '31536000' : '3600';
 
       const { data, error } = await this.supabase.storage
         .from(this.bucketName)
-        .upload(uniqueName, fileBuffer, {
-          contentType: file.mimetype,
+        .upload(uniqueName, processedBuffer, {
+          contentType: mimeType,
+          cacheControl: `public, max-age=${cacheControl}, immutable`,
           upsert: true,
         });
 
       if (error) {
         this.logger.error(`Supabase upload failed: ${error.message}`);
-        // Fallback to local storage if supabase storage fails
       } else {
         const { data: publicUrlData } = this.supabase.storage
           .from(this.bucketName)
           .getPublicUrl(uniqueName);
 
-        // Delete temporary local file if created by multer
+        // Cleanup local temp file if multer stored on disk
         if (file.path && fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
+          try {
+            fs.unlinkSync(file.path);
+          } catch (e) {}
         }
 
         return {
           url: publicUrlData.publicUrl,
           storageKey: uniqueName,
+          sizeBytes: processedBuffer.length,
         };
       }
     }
 
-    // Default local storage URL
-    const localUrl = `/uploads/${folder}/${file.filename}`;
+    // Local disk storage fallback with optimized buffer
+    const localDir = path.join(process.cwd(), 'uploads', folder);
+    if (!fs.existsSync(localDir)) {
+      fs.mkdirSync(localDir, { recursive: true });
+    }
+    const localFilename = `${uniqueId}${extension}`;
+    const localFilePath = path.join(localDir, localFilename);
+    fs.writeFileSync(localFilePath, processedBuffer);
+
+    // Cleanup multer original if different
+    if (file.path && file.path !== localFilePath && fs.existsSync(file.path)) {
+      try {
+        fs.unlinkSync(file.path);
+      } catch (e) {}
+    }
+
     return {
-      url: localUrl,
-      storageKey: `${folder}/${file.filename}`,
+      url: `/uploads/${folder}/${localFilename}`,
+      storageKey: `${folder}/${localFilename}`,
+      sizeBytes: processedBuffer.length,
     };
   }
 }

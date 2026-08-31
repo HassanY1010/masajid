@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
+import compression from 'compression';
 import { join } from 'path';
 import * as fs from 'fs';
 import { AppModule } from './app.module';
@@ -13,6 +14,19 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 async function bootstrap() {
   const logger = new Logger('MasajidBootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Enable HTTP Compression (Gzip / Deflate) for all API JSON & responses
+  app.use(
+    compression({
+      threshold: 512, // Compress any response above 512 bytes
+      filter: (req, res) => {
+        if (req.headers['x-no-compression']) {
+          return false;
+        }
+        return compression.filter(req, res);
+      },
+    }),
+  );
 
   // Ensure upload directories exist
   const uploadsDir = join(process.cwd(), 'uploads');
@@ -25,9 +39,14 @@ async function bootstrap() {
     }
   });
 
-  // Serve static public media uploads
+  // Serve static public media uploads with long-term immutable caching
   app.useStaticAssets(uploadsDir, {
     prefix: '/uploads/',
+    maxAge: '365d',
+    immutable: true,
+    setHeaders: (res, path) => {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    },
   });
 
   // Security Middleware
@@ -54,7 +73,7 @@ async function bootstrap() {
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With', 'If-None-Match'],
   });
 
   // Global Prefix

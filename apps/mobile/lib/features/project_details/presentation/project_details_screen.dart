@@ -75,6 +75,8 @@ class ProjectDetailsScreen extends ConsumerWidget {
                         CachedNetworkImage(
                           imageUrl: cover,
                           fit: BoxFit.cover,
+                          memCacheWidth: 1000,
+                          maxWidthDiskCache: 1200,
                         )
                       else
                         Container(color: AppTheme.surfaceDark),
@@ -297,10 +299,13 @@ class ProjectDetailsScreen extends ConsumerWidget {
                                       ),
                                       borderRadius: BorderRadius.circular(16),
                                     ),
-                                    child: Image.network(
-                                      img.url,
+                                    child: CachedNetworkImage(
+                                      imageUrl: img.url,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const Center(
+                                      memCacheWidth: 400,
+                                      maxWidthDiskCache: 600,
+                                      placeholder: (_, __) => Container(color: AppTheme.surfaceDark),
+                                      errorWidget: (_, __, ___) => const Center(
                                         child: Icon(Icons.broken_image, color: Colors.grey),
                                       ),
                                     ),

@@ -67,6 +67,8 @@ class ProjectCard extends StatelessWidget {
                           height: 180,
                           width: double.infinity,
                           fit: BoxFit.cover,
+                          memCacheWidth: 600,
+                          maxWidthDiskCache: 800,
                           placeholder: (context, url) => Container(
                             height: 180,
                             color: AppTheme.surfaceDark,

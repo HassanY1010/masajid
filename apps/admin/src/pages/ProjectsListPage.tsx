@@ -19,15 +19,24 @@ import { ProjectCategory, ProjectStatus } from '@masajid/shared-types';
 export const ProjectsListPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
 
+  // Debounce search keystrokes to reduce API egress
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [search]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-projects', search, statusFilter, categoryFilter],
+    queryKey: ['admin-projects', debouncedSearch, statusFilter, categoryFilter],
     queryFn: () =>
       apiClient.get<any>('/admin/projects', {
         params: {
-          search: search || undefined,
+          search: debouncedSearch || undefined,
           status: statusFilter || undefined,
           category: categoryFilter || undefined,
         },
