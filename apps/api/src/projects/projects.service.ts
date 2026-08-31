@@ -197,8 +197,9 @@ export class ProjectsService {
     const project = await this.prisma.project.create({
       data: {
         ...projectData,
-        status: ProjectStatus.DRAFT,
-        isPublished: false,
+        status: ProjectStatus.FUNDING,
+        isPublished: true,
+        publishedAt: new Date(),
         images: images && images.length > 0
           ? {
               create: images.map((img, idx) => ({
