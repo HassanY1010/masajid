@@ -177,6 +177,35 @@ export class CloudStorageService implements OnModuleInit {
   }
 
   /**
+   * Generate short-lived Signed URL for private assets (e.g. bank transfer receipts)
+   * Expires in expiresInSeconds (default: 300s / 5 minutes)
+   */
+  async getSignedUrl(storageKey?: string | null, expiresInSeconds = 300): Promise<string | null> {
+    if (!storageKey) return null;
+
+    if (this.isSupabaseEnabled && this.supabase) {
+      try {
+        const { data, error } = await this.supabase.storage
+          .from(this.bucketName)
+          .createSignedUrl(storageKey, expiresInSeconds);
+
+        if (error) {
+          this.logger.error(`Failed to create signed URL for ${storageKey}: ${error.message}`);
+          return null;
+        }
+
+        return data?.signedUrl || null;
+      } catch (err: any) {
+        this.logger.error(`Exception generating signed URL: ${err.message}`);
+        return null;
+      }
+    }
+
+    // Local fallback for development environment
+    return `/uploads/${storageKey}`;
+  }
+
+  /**
    * Delete single file from Supabase Storage or local disk.
    */
   async deleteFile(storageKey?: string | null): Promise<boolean> {

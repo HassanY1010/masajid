@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/splash/presentation/splash_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/project_details/presentation/project_details_screen.dart';
 import 'features/contribution/presentation/contribution_screen.dart';
@@ -14,6 +15,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/',
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: '/home',
         builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(

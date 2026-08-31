@@ -21,8 +21,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     {'id': 'SOLAR', 'label': 'طاقة شمسية', 'icon': '☀️'},
     {'id': 'WATER', 'label': 'سقيا ومياه', 'icon': '💧'},
     {'id': 'MAINTENANCE', 'label': 'صيانة وترميم', 'icon': '🛠️'},
-    {'id': 'FURNISHING', 'label': 'فرش وتجهيز', 'icon': '🪑'},
+    {'id': 'FURNISHING', 'label': 'فرش وتجهيز', 'icon': '🕌'},
     {'id': 'CONSTRUCTION', 'label': 'بناء وتوسعة', 'icon': '🏗️'},
+    {'id': 'RENOVATION', 'label': 'تجديد وتطوير', 'icon': '🏛️'},
+    {'id': 'AIR_CONDITIONING', 'label': 'تكييف وتهوية', 'icon': '❄️'},
+    {'id': 'SOUND_SYSTEM', 'label': 'صوتيات وأذان', 'icon': '🔊'},
+    {'id': 'BATHROOMS', 'label': 'دورات ومواضئ', 'icon': '🚿'},
+    {'id': 'LIGHTING', 'label': 'إنارة وتمديدات', 'icon': '💡'},
+    {'id': 'CLEANING', 'label': 'نظافة وتعقيم', 'icon': '✨'},
+    {'id': 'QURAN_SUPPLIES', 'label': 'مصاحف ودواليب', 'icon': '📖'},
+    {'id': 'INSULATION', 'label': 'عزل أسطح', 'icon': '🛡️'},
+    {'id': 'MINARET', 'label': 'مآذن وقباب', 'icon': '🕋'},
+    {'id': 'DISABLED_ACCESS', 'label': 'كبار السن والإعاقة', 'icon': '♿'},
+    {'id': 'WOMEN_SECTION', 'label': 'مصلى النساء', 'icon': '🧕'},
+    {'id': 'LIBRARY', 'label': 'مكتبة وتحفيظ', 'icon': '📚'},
+    {'id': 'SECURITY', 'label': 'كاميرات وحماية', 'icon': '📹'},
+    {'id': 'OTHER', 'label': 'احتياجات أخرى', 'icon': '📦'},
   ];
 
   @override
@@ -63,7 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: RefreshIndicator(
         color: AppTheme.primary,
         onRefresh: () async {
-          await ref.refresh(publicProjectsProvider(selectedCategory).future);
+          ref.invalidate(publicProjectsProvider(selectedCategory));
         },
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -240,7 +254,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () {
-                        ref.refresh(publicProjectsProvider(selectedCategory));
+                        ref.invalidate(publicProjectsProvider(selectedCategory));
                       },
                       child: const Text('إعادة المحاولة'),
                     ),

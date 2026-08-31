@@ -30,6 +30,8 @@ export class RefreshTokenDto {
   refreshToken: string;
 }
 
+import { Throttle } from '@nestjs/throttler';
+
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -37,6 +39,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // SEC-001: 5 attempts per minute max
   @ApiOperation({ summary: 'تسجيل دخول الأدمن' })
   @ApiResponse({ status: 200, description: 'تم تسجيل الدخول بنجاح' })
   async login(

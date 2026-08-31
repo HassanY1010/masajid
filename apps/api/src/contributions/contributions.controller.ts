@@ -44,6 +44,8 @@ const receiptStorageConfig = {
   },
 };
 
+import { Throttle } from '@nestjs/throttler';
+
 @ApiTags('Contributions (Public)')
 @Controller('contributions')
 export class ContributionsPublicController {
@@ -53,6 +55,7 @@ export class ContributionsPublicController {
   ) {}
 
   @Post()
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // SEC-001: 10 contributions per minute max per IP
   @ApiOperation({ summary: 'إرسال مساهمة جديدة مع سند التحويل (صورة أو PDF)' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('receipt', receiptStorageConfig))

@@ -237,13 +237,26 @@ export const ProjectFormPage: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, category: e.target.value as ProjectCategory })}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-brand-500 focus:outline-none"
             >
-              <option value={ProjectCategory.SOLAR}>طاقة شمسية وكهرباء بديلة</option>
-              <option value={ProjectCategory.WATER}>شبكة مياه وحفر آبار وسقيا</option>
-              <option value={ProjectCategory.MAINTENANCE}>صيانة وترميم عام</option>
-              <option value={ProjectCategory.FURNISHING}>فرش سجاد وتجهيز صوتيات</option>
-              <option value={ProjectCategory.CONSTRUCTION}>بناء وتوسعة المسجد</option>
-              <option value={ProjectCategory.CLEANING}>نظافة وتعقيم دورات المياه</option>
-              <option value={ProjectCategory.QURAN_SUPPLIES}>مصاحف ودواليب ومستلزمات</option>
+              <option value={ProjectCategory.SOLAR}>☀️ طاقة شمسية وكهرباء بديلة</option>
+              <option value={ProjectCategory.WATER}>💧 شبكة مياه وحفر آبار وسقيا</option>
+              <option value={ProjectCategory.MAINTENANCE}>🛠️ صيانة وترميم عام</option>
+              <option value={ProjectCategory.FURNISHING}>🕌 فرش سجاد وتجهيز الحرم</option>
+              <option value={ProjectCategory.CONSTRUCTION}>🏗️ بناء وتوسعة المسجد</option>
+              <option value={ProjectCategory.RENOVATION}>🏛️ تجديد وتطوير المرافق</option>
+              <option value={ProjectCategory.AIR_CONDITIONING}>❄️ تكييف وتهوية المسجد</option>
+              <option value={ProjectCategory.SOUND_SYSTEM}>🔊 نظام صوتيات ومكبرات أذان</option>
+              <option value={ProjectCategory.BATHROOMS}>🚿 دورات مياه ومواضئ جديدة</option>
+              <option value={ProjectCategory.LIGHTING}>💡 إنارة وثريات وتمديدات كهربائية</option>
+              <option value={ProjectCategory.CLEANING}>✨ نظافة وتعقيم دورات المياه</option>
+              <option value={ProjectCategory.QURAN_SUPPLIES}>📖 مصاحف ودواليب وحوامل قرآن</option>
+              <option value={ProjectCategory.INSULATION}>🛡️ عزل أسطح ومقاومة الأمطار</option>
+              <option value={ProjectCategory.MINARET}>🕋 بناء وترميم المآذن والقباب</option>
+              <option value={ProjectCategory.DISABLED_ACCESS}>♿ ممرات ومصاعد لكبار السن وذوي الإعاقة</option>
+              <option value={ProjectCategory.WOMEN_SECTION}>🧕 مصلى النساء وتجهيزاته</option>
+              <option value={ProjectCategory.LIBRARY}>📚 مكتبة إسلامية ومقاعد حلقات التحفيظ</option>
+              <option value={ProjectCategory.SECURITY}>📹 كاميرات مراقبة وأنظمة حماية</option>
+              <option value={ProjectCategory.ELECTRICITY}>⚡ مولد كهربائي وشبكة طوارئ</option>
+              <option value={ProjectCategory.OTHER}>📦 احتياجات وتجهيزات أخرى</option>
             </select>
           </div>
         </div>

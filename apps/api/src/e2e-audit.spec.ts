@@ -8,6 +8,7 @@ import { PrismaService } from './prisma/prisma.service';
 import { AuditService } from './common/audit/audit.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { CloudStorageService } from './uploads/cloud-storage.service';
 import { ProjectCategory, ProjectStatus, ContributionStatus } from '@masajid/shared-types';
 import * as bcrypt from 'bcryptjs';
 
@@ -142,6 +143,14 @@ describe('Comprehensive End-to-End System Audit & Verification', () => {
         AuditService,
         JwtService,
         ConfigService,
+        {
+          provide: CloudStorageService,
+          useValue: {
+            uploadFile: jest.fn().mockResolvedValue({ url: 'https://test.com/img.webp', storageKey: 'media/test.webp' }),
+            deleteFile: jest.fn().mockResolvedValue(true),
+            deleteFiles: jest.fn().mockResolvedValue({ deletedCount: 1, errors: [] }),
+          },
+        },
         { provide: PrismaService, useValue: mockPrisma },
       ],
     }).compile();

@@ -58,18 +58,36 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // CORS Configuration
-  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:3000')
-    .split(',')
-    .map((origin) => origin.trim());
+  const isProduction = process.env.NODE_ENV === 'production';
+  const defaultDevOrigins = ['http://localhost:5173', 'http://localhost:3000'];
+  const configuredOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
+    : [];
+
+  const allowedOrigins = isProduction
+    ? configuredOrigins // In production, must be explicitly declared
+    : (configuredOrigins.length > 0 ? configuredOrigins : defaultDevOrigins);
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl)
-      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Permissive in local dev
+      // Allow requests with no origin (e.g. Flutter mobile app, server-to-server, cURL)
+      if (!origin) {
+        return callback(null, true);
       }
+
+      if (allowedOrigins.includes(origin) || (!isProduction && allowedOrigins.includes('*'))) {
+        return callback(null, true);
+      }
+
+      if (!isProduction) {
+        // In local development, permit localhost variants with warning
+        logger.warn(`Permitting development origin: ${origin}`);
+        return callback(null, true);
+      }
+
+      // In production, block unauthorized origins strictly
+      logger.error(`🚫 Blocked by CORS policy: Origin '${origin}' is not allowed`);
+      return callback(new Error('Not allowed by CORS'), false);
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],

@@ -10,6 +10,8 @@ import { AuditService } from '../common/audit/audit.service';
 import { CreateContributionDto, RejectContributionDto } from './dto/contribution.dto';
 import { ContributionStatus, ProjectStatus, AuditAction } from '@masajid/shared-types';
 
+import { CloudStorageService } from '../uploads/cloud-storage.service';
+
 @Injectable()
 export class ContributionsService {
   private readonly logger = new Logger(ContributionsService.name);
@@ -17,6 +19,7 @@ export class ContributionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly cloudStorage: CloudStorageService,
   ) {}
 
   // Visitor: Submit new contribution
@@ -128,8 +131,22 @@ export class ContributionsService {
       this.prisma.contribution.count({ where }),
     ]);
 
+    const itemsWithSignedReceipts = await Promise.all(
+      items.map(async (item) => {
+        let signedReceiptUrl = item.receiptUrl;
+        if (item.receiptStorageKey) {
+          const generated = await this.cloudStorage.getSignedUrl(item.receiptStorageKey, 300); // 5 minutes validity
+          if (generated) signedReceiptUrl = generated;
+        }
+        return {
+          ...item,
+          receiptUrl: signedReceiptUrl,
+        };
+      }),
+    );
+
     return {
-      items,
+      items: itemsWithSignedReceipts,
       total,
       page,
       limit,
@@ -150,7 +167,16 @@ export class ContributionsService {
       throw new NotFoundException('المساهمة غير موجودة');
     }
 
-    return contribution;
+    let signedReceiptUrl = contribution.receiptUrl;
+    if (contribution.receiptStorageKey) {
+      const generated = await this.cloudStorage.getSignedUrl(contribution.receiptStorageKey, 300);
+      if (generated) signedReceiptUrl = generated;
+    }
+
+    return {
+      ...contribution,
+      receiptUrl: signedReceiptUrl,
+    };
   }
 
   // Admin: Approve contribution with atomic transaction & row locking to prevent race conditions & double approval

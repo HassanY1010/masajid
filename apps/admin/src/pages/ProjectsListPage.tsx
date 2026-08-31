@@ -104,16 +104,26 @@ export const ProjectsListPage: React.FC = () => {
 
   const getCategoryLabel = (category: string) => {
     const map: Record<string, string> = {
-      CONSTRUCTION: 'بناء وتشييد',
-      RENOVATION: 'ترميم وتأهيل',
-      MAINTENANCE: 'صيانة عامة',
-      SOLAR: 'طاقة شمسية',
-      WATER: 'سقيا ومياه',
-      ELECTRICITY: 'كهرباء وإنارة',
-      CLEANING: 'نظافة وتعقيم',
-      FURNISHING: 'فرش وتجهيز',
-      QURAN_SUPPLIES: 'مصاحف ومستلزمات',
-      OTHER: 'أخرى',
+      CONSTRUCTION: '🏗️ بناء وتوسعة',
+      RENOVATION: '🏛️ تجديد وتطوير',
+      MAINTENANCE: '🛠️ صيانة وترميم',
+      SOLAR: '☀️ طاقة شمسية',
+      WATER: '💧 سقيا ومياه',
+      ELECTRICITY: '⚡ مولد كهرباء وطوارئ',
+      CLEANING: '✨ نظافة وتعقيم',
+      FURNISHING: '🕌 فرش سجاد وتجهيز',
+      QURAN_SUPPLIES: '📖 مصاحف ومستلزمات',
+      SOUND_SYSTEM: '🔊 نظام صوتيات وأذان',
+      AIR_CONDITIONING: '❄️ تكييف وتهوية',
+      BATHROOMS: '🚿 دورات مياه ومواضئ',
+      LIGHTING: '💡 إنارة وتمديدات',
+      INSULATION: '🛡️ عزل أسطح',
+      MINARET: '🕋 مآذن وقباب',
+      DISABLED_ACCESS: '♿ ممرات كبار السن',
+      WOMEN_SECTION: '🧕 مصلى النساء',
+      LIBRARY: '📚 مكتبة وتحفيظ',
+      SECURITY: '📹 كاميرات وحماية',
+      OTHER: '📦 أخرى',
     };
     return map[category] || category;
   };
@@ -167,11 +177,25 @@ export const ProjectsListPage: React.FC = () => {
             className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-brand-500"
           >
             <option value="">جميع الفئات</option>
-            <option value="SOLAR">طاقة شمسية</option>
-            <option value="WATER">سقيا ومياه</option>
-            <option value="MAINTENANCE">صيانة</option>
-            <option value="FURNISHING">فرش وتجهيز</option>
-            <option value="CONSTRUCTION">بناء</option>
+            <option value="SOLAR">☀️ طاقة شمسية</option>
+            <option value="WATER">💧 سقيا ومياه</option>
+            <option value="MAINTENANCE">🛠️ صيانة وترميم</option>
+            <option value="FURNISHING">🕌 فرش وتجهيز</option>
+            <option value="CONSTRUCTION">🏗️ بناء وتوسعة</option>
+            <option value="RENOVATION">🏛️ تجديد وتطوير</option>
+            <option value="AIR_CONDITIONING">❄️ تكييف وتهوية</option>
+            <option value="SOUND_SYSTEM">🔊 صوتيات وأذان</option>
+            <option value="BATHROOMS">🚿 دورات مياه</option>
+            <option value="LIGHTING">💡 إنارة وكهرباء</option>
+            <option value="CLEANING">✨ نظافة وتعقيم</option>
+            <option value="QURAN_SUPPLIES">📖 مصاحف ومستلزمات</option>
+            <option value="INSULATION">🛡️ عزل أسطح</option>
+            <option value="MINARET">🕋 مآذن وقباب</option>
+            <option value="DISABLED_ACCESS">♿ كبار السن والإعاقة</option>
+            <option value="WOMEN_SECTION">🧕 مصلى النساء</option>
+            <option value="LIBRARY">📚 مكتبة وتحفيظ</option>
+            <option value="SECURITY">📹 كاميرات وحماية</option>
+            <option value="OTHER">📦 أخرى</option>
           </select>
         </div>
       </div>

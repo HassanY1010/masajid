@@ -27,8 +27,36 @@ class ProjectCard extends StatelessWidget {
         return '🕌 فرش وتجهيز';
       case 'CONSTRUCTION':
         return '🏗️ بناء وتوسعة';
+      case 'RENOVATION':
+        return '🏛️ تجديد وتطوير';
+      case 'AIR_CONDITIONING':
+        return '❄️ تكييف وتهوية';
+      case 'SOUND_SYSTEM':
+        return '🔊 صوتيات وأذان';
+      case 'BATHROOMS':
+        return '🚿 دورات مياه';
+      case 'LIGHTING':
+        return '💡 إنارة وتمديدات';
+      case 'CLEANING':
+        return '✨ نظافة وتعقيم';
+      case 'QURAN_SUPPLIES':
+        return '📖 مصاحف ومستلزمات';
+      case 'INSULATION':
+        return '🛡️ عزل أسطح';
+      case 'MINARET':
+        return '🕋 مآذن وقباب';
+      case 'DISABLED_ACCESS':
+        return '♿ كبار السن والإعاقة';
+      case 'WOMEN_SECTION':
+        return '🧕 مصلى النساء';
+      case 'LIBRARY':
+        return '📚 مكتبة وتحفيظ';
+      case 'SECURITY':
+        return '📹 كاميرات وحماية';
+      case 'ELECTRICITY':
+        return '⚡ كهرباء وطوارئ';
       default:
-        return '🕌 خدمة مسجد';
+        return '📦 خدمة مسجد';
     }
   }
 
