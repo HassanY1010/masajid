@@ -94,6 +94,12 @@ export const ProjectsListPage: React.FC = () => {
             تم الإنجاز
           </span>
         );
+      case ProjectStatus.ARCHIVED:
+        return (
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+            مؤرشف (محذوف)
+          </span>
+        );
       default:
         return (
           <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-300">
@@ -165,11 +171,12 @@ export const ProjectsListPage: React.FC = () => {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-brand-500"
           >
-            <option value="">جميع الحالات</option>
+            <option value="">جميع الحالات النشطة</option>
             <option value="DRAFT">مسودة</option>
             <option value="FUNDING">قيد التمويل</option>
             <option value="FULLY_FUNDED">مكتمل التمويل</option>
             <option value="COMPLETED">مكتمل</option>
+            <option value="ARCHIVED">مؤرشف / محذوف</option>
           </select>
 
           <select

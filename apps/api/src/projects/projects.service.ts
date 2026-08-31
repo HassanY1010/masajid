@@ -157,6 +157,9 @@ export class ProjectsService {
 
     if (query.status) {
       where.status = query.status;
+    } else {
+      // Default: Do not show archived/deleted projects in the active projects list
+      where.status = { not: ProjectStatus.ARCHIVED };
     }
 
     if (typeof query.isPublished === 'boolean') {
