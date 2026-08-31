@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/search/arabic_search_engine.dart';
 import '../../projects/providers/project_providers.dart';
 import '../widgets/project_card.dart';
 
@@ -38,6 +39,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     {'id': 'SECURITY', 'label': 'كاميرات وحماية', 'icon': '📹'},
     {'id': 'OTHER', 'label': 'احتياجات أخرى', 'icon': '📦'},
   ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,16 +94,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF047857), Color(0xFF064E3B)],
+                  colors: [AppTheme.primaryDark, AppTheme.primary],
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
                 ),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primary.withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
+                    color: AppTheme.primary.withValues(alpha: 0.25),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
@@ -145,24 +152,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Search Bar
+            // Smart Instant Search Bar
             Container(
               decoration: BoxDecoration(
                 color: AppTheme.surfaceDark,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppTheme.borderDark),
+                border: Border.all(
+                  color: _searchController.text.isNotEmpty ? AppTheme.primaryLight : AppTheme.borderDark,
+                  width: _searchController.text.isNotEmpty ? 1.5 : 1.0,
+                ),
+                boxShadow: _searchController.text.isNotEmpty
+                    ? [
+                        BoxShadow(
+                          color: AppTheme.primary.withValues(alpha: 0.15),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
               ),
               child: TextField(
                 controller: _searchController,
                 onChanged: (val) {
                   setState(() {});
                 },
-                decoration: const InputDecoration(
-                  hintText: 'ابحث عن اسم المسجد أو المحافظة...',
-                  hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: AppTheme.textMuted),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'ابحث الذكي: اسم المسجد، الحي، المدينة، نوع الاحتياج...',
+                  hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                  prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.primaryLight),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, color: AppTheme.textMuted, size: 20),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {});
+                          },
+                        )
+                      : null,
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
               ),
             ),
@@ -262,15 +291,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
               data: (projects) {
-                final searchQuery = _searchController.text.trim().toLowerCase();
-                final filteredProjects = searchQuery.isEmpty
-                    ? projects
-                    : projects.where((p) {
-                        return p.title.toLowerCase().contains(searchQuery) ||
-                            p.mosqueName.toLowerCase().contains(searchQuery) ||
-                            p.governorate.toLowerCase().contains(searchQuery) ||
-                            p.district.toLowerCase().contains(searchQuery);
-                      }).toList();
+                final rawSearch = _searchController.text;
+                final filteredProjects = ArabicSearchEngine.filterAndRank(projects, rawSearch);
 
                 if (filteredProjects.isEmpty) {
                   return Container(
@@ -278,13 +300,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     alignment: Alignment.center,
                     child: Column(
                       children: [
-                        const Icon(Icons.mosque, size: 54, color: AppTheme.textMuted),
+                        const Icon(Icons.search_off_rounded, size: 54, color: AppTheme.textMuted),
                         const SizedBox(height: 12),
                         Text(
-                          searchQuery.isNotEmpty
-                              ? 'لا توجد نتائج مطابقة لبحثك'
+                          rawSearch.trim().isNotEmpty
+                              ? 'لم يتم العثور على نتائج تطابق "$rawSearch"'
                               : 'لا توجد مشاريع متاحة في هذا القسم حالياً',
                           style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
