@@ -60,96 +60,84 @@ export class ProjectsService {
     const skip = (page - 1) * limit;
 
     const cacheKey = `projects:public:${query.category || 'all'}:${query.governorate || 'all'}:${query.search || ''}:${page}:${limit}`;
-    const cached = this.cache.get<any>(cacheKey);
-    if (cached) {
-      return cached;
-    }
 
-    const where: any = {
-      isPublished: true,
-      status: {
-        in: [ProjectStatus.PUBLISHED, ProjectStatus.FUNDING, ProjectStatus.FULLY_FUNDED, ProjectStatus.IN_PROGRESS, ProjectStatus.COMPLETED],
-      },
-    };
-
-    if (query.category) {
-      where.category = query.category;
-    }
-
-    if (query.governorate) {
-      where.governorate = query.governorate;
-    }
-
-    if (query.search && query.search.trim()) {
-      const s = query.search.trim();
-      where.OR = [
-        { title: { contains: s, mode: 'insensitive' } },
-        { mosqueName: { contains: s, mode: 'insensitive' } },
-        { governorate: { contains: s, mode: 'insensitive' } },
-        { district: { contains: s, mode: 'insensitive' } },
-      ];
-    }
-
-    const [items, total] = await Promise.all([
-      this.prisma.project.findMany({
-        where,
-        include: {
-          images: {
-            orderBy: { sortOrder: 'asc' },
-          },
+    return this.cache.getOrSet(cacheKey, 30000, async () => {
+      const where: any = {
+        isPublished: true,
+        status: {
+          in: [ProjectStatus.PUBLISHED, ProjectStatus.FUNDING, ProjectStatus.FULLY_FUNDED, ProjectStatus.IN_PROGRESS, ProjectStatus.COMPLETED],
         },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.project.count({ where }),
-    ]);
+      };
 
-    const result = {
-      items: items.map((p) => {
-        const formatted = this.formatProject(p);
-        // Exclude unnecessary deep internal relations from public list query
-        return {
-          ...formatted,
-          // Guarantee clean cover image URL for fast mobile cards
-          coverImageUrl: formatted.images?.find((img: any) => img.type === 'COVER')?.url || formatted.images?.[0]?.url || null,
-        };
-      }),
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+      if (query.category) {
+        where.category = query.category;
+      }
 
-    // Cache public project lists for 30 seconds
-    this.cache.set(cacheKey, result, 30000);
+      if (query.governorate) {
+        where.governorate = query.governorate;
+      }
 
-    return result;
+      if (query.search && query.search.trim()) {
+        const s = query.search.trim();
+        where.OR = [
+          { title: { contains: s, mode: 'insensitive' } },
+          { mosqueName: { contains: s, mode: 'insensitive' } },
+          { governorate: { contains: s, mode: 'insensitive' } },
+          { district: { contains: s, mode: 'insensitive' } },
+        ];
+      }
+
+      const [items, total] = await Promise.all([
+        this.prisma.project.findMany({
+          where,
+          include: {
+            images: {
+              orderBy: { sortOrder: 'asc' },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+        this.prisma.project.count({ where }),
+      ]);
+
+      return {
+        items: items.map((p) => {
+          const formatted = this.formatProject(p);
+          // Exclude unnecessary deep internal relations from public list query
+          return {
+            ...formatted,
+            // Guarantee clean cover image URL for fast mobile cards
+            coverImageUrl: formatted.images?.find((img: any) => img.type === 'COVER')?.url || formatted.images?.[0]?.url || null,
+          };
+        }),
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    });
   }
 
   // Public: Get single project details
   async getPublicProjectById(id: string) {
     const cacheKey = `project:public:${id}`;
-    const cached = this.cache.get<any>(cacheKey);
-    if (cached) {
-      return cached;
-    }
+    return this.cache.getOrSet(cacheKey, 30000, async () => {
+      const project = await this.prisma.project.findFirst({
+        where: { id, isPublished: true },
+        include: {
+          images: { orderBy: { sortOrder: 'asc' } },
+          updates: { orderBy: { createdAt: 'desc' } },
+        },
+      });
 
-    const project = await this.prisma.project.findFirst({
-      where: { id, isPublished: true },
-      include: {
-        images: { orderBy: { sortOrder: 'asc' } },
-        updates: { orderBy: { createdAt: 'desc' } },
-      },
+      if (!project) {
+        throw new NotFoundException('المشروع غير موجود أو غير متاح حالياً');
+      }
+
+      return this.formatProject(project);
     });
-
-    if (!project) {
-      throw new NotFoundException('المشروع غير موجود أو غير متاح حالياً');
-    }
-
-    const result = this.formatProject(project);
-    this.cache.set(cacheKey, result, 30000);
-    return result;
   }
 
   // Admin: Get all projects (including Drafts and Archived)

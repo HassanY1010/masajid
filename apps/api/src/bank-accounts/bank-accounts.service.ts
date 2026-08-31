@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { CreateBankAccountDto, UpdateBankAccountDto } from './dto/bank-account.dto';
 import { AuditAction } from '@masajid/shared-types';
+import { MemoryCacheService } from '../common/cache/memory-cache.service';
 
 @Injectable()
 export class BankAccountsService {
@@ -11,13 +12,16 @@ export class BankAccountsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly cache: MemoryCacheService,
   ) {}
 
-  // Public: Get all active bank accounts sorted
+  // Public: Get all active bank accounts sorted (Cached for 60s with instant mutation invalidation)
   async getPublicAccounts() {
-    return this.prisma.bankAccount.findMany({
-      where: { isActive: true },
-      orderBy: { sortOrder: 'asc' },
+    return this.cache.getOrSet('bank_accounts:public', 60000, async () => {
+      return this.prisma.bankAccount.findMany({
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+      });
     });
   }
 
@@ -42,6 +46,8 @@ export class BankAccountsService {
       metadata: { displayName: account.displayName, accountNumber: account.accountNumber },
     });
 
+    this.cache.invalidate('bank_accounts');
+
     return account;
   }
 
@@ -65,6 +71,8 @@ export class BankAccountsService {
       metadata: dto,
     });
 
+    this.cache.invalidate('bank_accounts');
+
     return updated;
   }
 
@@ -83,6 +91,8 @@ export class BankAccountsService {
       entity: 'BankAccount',
       entityId: id,
     });
+
+    this.cache.invalidate('bank_accounts');
 
     return { message: 'تم حذف الحساب البنكي بنجاح' };
   }

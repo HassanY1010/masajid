@@ -9,6 +9,7 @@ interface CacheEntry<T> {
 export class MemoryCacheService {
   private readonly logger = new Logger(MemoryCacheService.name);
   private static readonly store = new Map<string, CacheEntry<any>>();
+  private static readonly inFlight = new Map<string, Promise<any>>();
 
   /**
    * Get cached data if valid, otherwise undefined
@@ -42,6 +43,38 @@ export class MemoryCacheService {
   }
 
   /**
+   * Single-flight deduplication / Cache Stampede Protection:
+   * Guarantees that concurrent requests for the same expired/cold cache key
+   * execute the factory function exactly once and share the single DB promise.
+   */
+  async getOrSet<T>(key: string, ttlMs: number, factory: () => Promise<T>): Promise<T> {
+    const cached = this.get<T>(key);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    // Check if another concurrent request is already fetching this key
+    const inFlightPromise = MemoryCacheService.inFlight.get(key);
+    if (inFlightPromise) {
+      return inFlightPromise as Promise<T>;
+    }
+
+    // Execute single-flight factory and register in-flight promise
+    const promise = (async () => {
+      try {
+        const data = await factory();
+        this.set(key, data, ttlMs);
+        return data;
+      } finally {
+        MemoryCacheService.inFlight.delete(key);
+      }
+    })();
+
+    MemoryCacheService.inFlight.set(key, promise);
+    return promise;
+  }
+
+  /**
    * Invalidate specific key or keys starting with prefix
    */
   invalidate(prefixOrKey: string): void {
@@ -57,5 +90,6 @@ export class MemoryCacheService {
    */
   clear(): void {
     MemoryCacheService.store.clear();
+    MemoryCacheService.inFlight.clear();
   }
 }

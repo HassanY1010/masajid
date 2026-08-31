@@ -50,6 +50,12 @@ export class ProjectsPublicController {
     });
   }
 
+  @Get('categories')
+  @ApiOperation({ summary: 'قائمة فئات مشاريع واحتياجات المساجد المعتمدة' })
+  async getCategories() {
+    return Object.values(ProjectCategory);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'تفاصيل مشروع مسجد محدد للزوار' })
   async getPublicProjectById(@Param('id') id: string) {

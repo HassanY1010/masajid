@@ -204,6 +204,7 @@ model AuditLog {
   userAgent String?
   createdAt DateTime    @default(now())
 
+  @@index([action, createdAt])
   @@index([action])
   @@index([adminId])
   @@index([createdAt])
