@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, apiClient } from '../lib/api';
 import { ProjectCategory } from '@masajid/shared-types';
 import {
   Building2,
@@ -26,6 +26,8 @@ interface UploadedImageItem {
 }
 
 export const ProjectFormPage: React.FC = () => {
+  const { id } = useParams<{ id?: string }>();
+  const isEditMode = Boolean(id);
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +62,44 @@ export const ProjectFormPage: React.FC = () => {
     totalShares: 2000,
     shareValue: 10,
   });
+
+  // In Edit Mode: Fetch existing project data
+  const { data: existingProject, isLoading: isFetchingProject } = useQuery({
+    queryKey: ['admin-project', id],
+    queryFn: () => apiClient.get<any>(`/admin/projects/${id}`),
+    enabled: isEditMode,
+  });
+
+  // Pre-fill form when existing project loads
+  useEffect(() => {
+    if (existingProject) {
+      setFormData({
+        title: existingProject.title || '',
+        mosqueName: existingProject.mosqueName || '',
+        governorate: existingProject.governorate || '',
+        district: existingProject.district || '',
+        locationText: existingProject.locationText || '',
+        description: existingProject.description || '',
+        needDescription: existingProject.needDescription || '',
+        category: existingProject.category || ProjectCategory.MAINTENANCE,
+        estimatedCost: existingProject.estimatedCost || 0,
+        currency: existingProject.currency || 'SAR',
+        totalShares: existingProject.totalShares || 0,
+        shareValue: existingProject.shareValue || 0,
+      });
+
+      if (Array.isArray(existingProject.images) && existingProject.images.length > 0) {
+        setUploadedImages(
+          existingProject.images.map((img: any) => ({
+            url: img.url,
+            storageKey: img.storageKey,
+            isCover: img.type === 'COVER',
+            name: img.storageKey ? img.storageKey.split('/').pop() : 'صورة المسجد',
+          })),
+        );
+      }
+    }
+  }, [existingProject]);
 
   // Calculate live invariant
   const totalSharesValue = formData.totalShares * formData.shareValue;
@@ -142,9 +182,11 @@ export const ProjectFormPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (payload: any) => api.post('/admin/projects', payload),
+    mutationFn: (payload: any) =>
+      isEditMode ? api.patch(`/admin/projects/${id}`, payload) : api.post('/admin/projects', payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-project', id] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       navigate('/projects');
     },
@@ -177,13 +219,26 @@ export const ProjectFormPage: React.FC = () => {
     mutation.mutate(payload);
   };
 
+  if (isEditMode && isFetchingProject) {
+    return (
+      <div className="p-16 text-center text-slate-400 font-bold flex flex-col items-center justify-center gap-3">
+        <Loader2 className="w-8 h-8 text-brand-400 animate-spin" />
+        <span>جاري تحميل بيانات المشروع للتعديل...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">إضافة مشروع مسجد جديد</h1>
+        <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+          {isEditMode ? `تعديل المشروع: ${existingProject?.title || ''}` : 'إضافة مشروع مسجد جديد'}
+        </h1>
         <p className="text-xs sm:text-sm text-slate-400 mt-1">
-          أدخل بيانات المسجد، الموقع الجغرافي، الاحتياج الفني، وهيكل الأسهم التمويلية
+          {isEditMode
+            ? 'تعديل بيانات المسجد، الموقع الجغرافي، الاحتياج الفني، والصور'
+            : 'أدخل بيانات المسجد، الموقع الجغرافي، الاحتياج الفني، وهيكل الأسهم التمويلية'}
         </p>
       </div>
 
@@ -553,7 +608,7 @@ export const ProjectFormPage: React.FC = () => {
             ) : (
               <>
                 <Save className="w-5 h-5" />
-                <span>حفظ المشروع ونشره</span>
+                <span>{isEditMode ? 'حفظ التعديلات' : 'حفظ المشروع ونشره'}</span>
               </>
             )}
           </button>

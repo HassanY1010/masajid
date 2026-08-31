@@ -93,6 +93,12 @@ export class ProjectsAdminController {
     });
   }
 
+  @Get(':id')
+  @ApiOperation({ summary: 'لوحة التحكم: جلب تفاصيل مشروع للتعديل' })
+  async getAdminProjectById(@Param('id') id: string) {
+    return this.projectsService.getAdminProjectById(id);
+  }
+
   @Post()
   @ApiOperation({ summary: 'لوحة التحكم: إضافة مشروع مسجد جديد' })
   async createProject(

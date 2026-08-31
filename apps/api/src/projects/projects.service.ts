@@ -201,6 +201,23 @@ export class ProjectsService {
     };
   }
 
+  // Admin: Get single project by ID (draft, published, or any state)
+  async getAdminProjectById(id: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id },
+      include: {
+        images: { orderBy: { sortOrder: 'asc' } },
+        updates: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('المشروع غير موجود');
+    }
+
+    return this.formatProject(project);
+  }
+
   // Admin: Create new project
   async createProject(dto: CreateProjectDto, adminId?: string) {
     // Validate mathematical formula: totalShares * shareValue == estimatedCost
