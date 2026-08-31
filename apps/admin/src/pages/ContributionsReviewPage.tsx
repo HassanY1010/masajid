@@ -14,6 +14,7 @@ import {
   Loader2,
   Download,
   X,
+  Phone,
 } from 'lucide-react';
 import { ContributionStatus } from '@masajid/shared-types';
 
@@ -195,7 +196,20 @@ export const ContributionsReviewPage: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>المودع:</span>
-                    <span className="text-slate-300">{item.donorName || 'فاعل خير'}</span>
+                    <span className="font-semibold text-slate-200">{item.donorName || 'فاعل خير'}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span>رقم الهاتف:</span>
+                    <span className="font-semibold text-slate-200">
+                      {item.donorPhone ? (
+                        <span className="text-brand-400 font-mono flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          <span>{item.donorPhone}</span>
+                        </span>
+                      ) : (
+                        'فاعل خير'
+                      )}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>البنك المستخدم:</span>
