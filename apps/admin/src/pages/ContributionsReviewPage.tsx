@@ -12,6 +12,8 @@ import {
   AlertCircle,
   ExternalLink,
   Loader2,
+  Download,
+  X,
 } from 'lucide-react';
 import { ContributionStatus } from '@masajid/shared-types';
 
@@ -276,17 +278,59 @@ export const ContributionsReviewPage: React.FC = () => {
           >
             <div className="w-full flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
               <h3 className="font-bold text-white text-base">معاينة سند التحويل البنكي</h3>
-              <a
-                href={selectedReceipt}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-brand-400 hover:text-brand-300 flex items-center gap-1 font-semibold"
-              >
-                <span>فتح بحجم كامل</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(selectedReceipt);
+                      const blob = await response.blob();
+                      const blobUrl = window.URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = blobUrl;
+                      const ext = selectedReceipt.includes('.pdf') ? 'pdf' : 'jpg';
+                      link.download = `masajid-receipt-${Date.now()}.${ext}`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      window.URL.revokeObjectURL(blobUrl);
+                    } catch {
+                      // Fallback direct download
+                      const link = document.createElement('a');
+                      link.href = selectedReceipt;
+                      link.target = '_blank';
+                      link.download = 'masajid-receipt';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-md shadow-brand-600/20"
+                  title="تحميل السند إلى جهازك"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>تحميل السند</span>
+                </button>
+                <a
+                  href={selectedReceipt}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <span>فتح بحجم كامل</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setSelectedReceipt(null)}
+                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                  title="إغلاق"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <div className="overflow-auto max-h-[70vh] rounded-xl">
+            <div className="overflow-auto max-h-[70vh] rounded-xl w-full flex items-center justify-center bg-slate-950/60 p-2">
               {selectedReceipt.endsWith('.pdf') ? (
                 <iframe src={selectedReceipt} className="w-full h-96 rounded-xl" title="سند PDF"></iframe>
               ) : (
